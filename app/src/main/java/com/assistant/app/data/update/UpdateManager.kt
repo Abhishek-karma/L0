@@ -12,10 +12,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
-/**
- * Coordinates app update checks, notifications, periodic background checks,
- * and UI state.
- */
 class UpdateManager(
     private val currentVersion: String,
     private val updateChecker: UpdateChecker,
@@ -33,10 +29,6 @@ class UpdateManager(
         appPreferences.setAutoCheckUpdates(enabled)
     }
 
-    /**
-     * Checks for updates.
-     * @param manual If true, triggers check regardless of interval and notifies user.
-     */
     suspend fun checkForUpdates(manual: Boolean = false): UpdateCheckResult {
         _updateStatus.value = UpdateStatus.Checking
         val result = updateChecker.checkForUpdate(currentVersion)
@@ -60,10 +52,6 @@ class UpdateManager(
         return result
     }
 
-    /**
-     * Called during app startup. Performs a background update check if auto-check
-     * is enabled and the check interval has elapsed.
-     */
     fun checkOnLaunch() {
         scope.launch {
             val autoCheck = appPreferences.autoCheckUpdates.first()
@@ -82,6 +70,6 @@ class UpdateManager(
     }
 
     companion object {
-        const val CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000L // 24 hours
+        const val CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000L
     }
 }

@@ -16,14 +16,6 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/**
- * Copies picked or captured files into app storage. Images are downscaled and
- * re-encoded as JPEG (the stored copy is what requests send as a data-URL);
- * text-like files are stored capped, to be inlined as context.
- *
- * Failures come back as message strings, never exceptions: an unreadable or
- * oversized file must not disturb the chat.
- */
 class AttachmentIngester(
     context: Context,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
@@ -53,7 +45,6 @@ class AttachmentIngester(
         }
     }
 
-    /** The staged camera capture is copied; its temp file is not needed. */
     private fun reclaimCameraCapture(uri: Uri) {
         if (uri.authority == "${appContext.packageName}.fileprovider") {
             runCatching { resolver.delete(uri, null, null) }
@@ -74,9 +65,6 @@ class AttachmentIngester(
         }
     }
 
-    /**
-     * Deletes attachment copies that are no longer referenced in the database.
-     */
     suspend fun sweepOrphans(referencedPaths: suspend () -> Set<String>) = withContext(ioDispatcher) {
         runCatching {
             val referenced = referencedPaths()
@@ -89,12 +77,10 @@ class AttachmentIngester(
     }
 
     internal fun storeImage(stream: InputStream, displayName: String): IngestResult {
-        // Bounded read: this is the only full copy in memory, and decoding is
-        // sampled from it (bounds need a separate decode pass).
+
         val bytes = stream.readBounded(MAX_SOURCE_IMAGE_BYTES)
             ?: return IngestResult.Failure(IMAGE_TOO_LARGE_MESSAGE)
-        // Signature check first: garbage input is rejected deterministically
-        // instead of relying on decoder-specific failure behavior.
+
         if (!hasImageSignature(bytes)) return IngestResult.Failure(UNSUPPORTED_MESSAGE)
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
@@ -130,7 +116,6 @@ class AttachmentIngester(
         )
     }
 
-    /** Reads one text-like file, capped. */
     internal fun storeText(stream: InputStream, displayName: String): IngestResult {
         val bytes = stream.readBounded(MAX_TEXT_BYTES)
             ?: return IngestResult.Failure(TEXT_TOO_LARGE_MESSAGE)
@@ -160,7 +145,6 @@ class AttachmentIngester(
         return File(attachmentsDir, "${UUID.randomUUID()}.$extension")
     }
 
-    /** Checks the declared MIME type, falling back to the file extension. */
     private fun isSupportedText(mime: String?, name: String): Boolean {
         if (mime != null) {
             if (mime.startsWith("text/")) return true
@@ -211,7 +195,6 @@ class AttachmentIngester(
             "sh", "gradle", "kts", "properties", "sql", "log",
         )
 
-        /** Largest power-of-two sample size that still overshoots [target]. */
         private fun sampleSize(width: Int, height: Int, target: Int): Int {
             var sample = 1
             while (width / (sample
@@ -220,7 +203,6 @@ class AttachmentIngester(
             return sample
         }
 
-        /** JPEG, PNG, or WEBP magic bytes — the formats Android decodes reliably. */
         private fun hasImageSignature(bytes: ByteArray): Boolean = when {            bytes.size >= 3 &&
                 bytes[0] == 0xFF.toByte() && bytes[1] == 0xD8.toByte() && bytes[2] == 0xFF.toByte() -> true
             bytes.size >= 4 &&

@@ -5,9 +5,6 @@ import com.assistant.app.data.ConversationStore
 import com.assistant.app.llm.model.Role
 import com.assistant.app.llm.model.UiMessage
 
-/**
- * Manages in-memory answer versions and syncs version selections to persistent storage.
- */
 class AnswerVersionStore(
     private val store: ConversationStore? = null,
     private val clock: () -> Long = System::currentTimeMillis

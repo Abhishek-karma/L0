@@ -28,12 +28,10 @@ import com.assistant.app.ui.theme.ChatTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
-        // The activity launches with the splash theme so the window shows the
-        // mark; switch to the real theme before the first frame is drawn.
+
         setTheme(R.style.Theme_InletChat)
         super.onCreate(savedInstanceState)
-        // Target SDK 35 enforces edge-to-edge; enable it on older versions too
-        // so inset handling is identical everywhere.
+
         enableEdgeToEdge()
         val container = (application as AssistantApp).container
         container.updateManager.checkOnLaunch()
@@ -42,7 +40,7 @@ class MainActivity : ComponentActivity() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 val notificationLauncher = rememberLauncherForActivityResult(
                     ActivityResultContracts.RequestPermission(),
-                ) { /* notification permission result */ }
+                ) {  }
 
                 LaunchedEffect(Unit) {
                     val hasPermission = ContextCompat.checkSelfPermission(
@@ -64,8 +62,7 @@ class MainActivity : ComponentActivity() {
             SideEffect { applySystemBarIconAppearance(view, darkTheme) }
             val textSize by container.textSize.collectAsState()
             ChatTheme(darkTheme = darkTheme) {
-                // The reading size multiplies the system font scale, so the
-                // accessibility size setting keeps applying.
+
                 val density = LocalDensity.current
                 CompositionLocalProvider(
                     LocalDensity provides Density(density.density, density.fontScale * textSize.scale),
@@ -81,13 +78,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-/**
- * Forces the status and navigation bar icon contrast to match the app theme
- * rather than the system one: `enableEdgeToEdge` picks its contrast from the
- * system dark-mode flag, so the in-app override would otherwise leave dark
- * icons on a dark background. Light icons for [darkTheme], dark icons
- * otherwise.
- */
 internal fun applySystemBarIconAppearance(view: View, darkTheme: Boolean) {
     val window = (view.context as Activity).window
     WindowCompat.getInsetsController(window, view).apply {

@@ -17,25 +17,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.assistant.app.R
 
-// Monochrome system: ink on paper in light mode, white on true black in
-// dark mode. Neutral grays carry hierarchy; error red is the only hue,
-// reserved for failure states.
-
-/** MiSans primary brand typography. */
 val AppFontFamily = FontFamily(
     Font(R.font.misans_regular, FontWeight.Normal),
     Font(R.font.misans_medium, FontWeight.Medium),
     Font(R.font.misans_demibold, FontWeight.SemiBold),
 )
 
-/** Geist Mono code & metadata font. */
 val AppCodeFontFamily = FontFamily(
     Font(R.font.geistmono_regular, FontWeight.Normal),
     Font(R.font.geistmono_italic, FontWeight.Normal, style = FontStyle.Italic),
 )
 
 private val LightColors = lightColorScheme(
-    primary = Color(0xFF111111), // Ink
+    primary = Color(0xFF111111),
     onPrimary = Color(0xFFFFFFFF),
     primaryContainer = Color(0xFFECECEC),
     onPrimaryContainer = Color(0xFF111111),
@@ -47,7 +41,7 @@ private val LightColors = lightColorScheme(
     onTertiary = Color(0xFFFFFFFF),
     tertiaryContainer = Color(0xFFE0E0E0),
     onTertiaryContainer = Color(0xFF1A1A1A),
-    background = Color(0xFFFFFFFF), // Paper
+    background = Color(0xFFFFFFFF),
     onBackground = Color(0xFF111111),
     surface = Color(0xFFFFFFFF),
     onSurface = Color(0xFF111111),
@@ -72,7 +66,7 @@ private val LightColors = lightColorScheme(
 )
 
 private val DarkColors = darkColorScheme(
-    primary = Color(0xFFF2F2F2), // White ink
+    primary = Color(0xFFF2F2F2),
     onPrimary = Color(0xFF111111),
     primaryContainer = Color(0xFF242424),
     onPrimaryContainer = Color(0xFFF2F2F2),
@@ -84,7 +78,7 @@ private val DarkColors = darkColorScheme(
     onTertiary = Color(0xFF111111),
     tertiaryContainer = Color(0xFF2A2A2A),
     onTertiaryContainer = Color(0xFFE6E6E6),
-    background = Color(0xFF000000), // True black, no blue cast
+    background = Color(0xFF000000),
     onBackground = Color(0xFFEDEDED),
     surface = Color(0xFF000000),
     onSurface = Color(0xFFEDEDED),
@@ -108,10 +102,6 @@ private val DarkColors = darkColorScheme(
     onErrorContainer = Color(0xFFFEE2E2),
 )
 
-/**
- * Refined editorial typography ramp.
- * Features generous line-height for body text, monospace for code, and clear headline hierarchy.
- */
 private val AppTypography: Typography
     get() = Typography(
         displayLarge = TextStyle(fontFamily = AppFontFamily, fontWeight = FontWeight.Bold, fontSize = 32.sp, lineHeight = 40.sp),
@@ -131,7 +121,6 @@ private val AppTypography: Typography
         labelSmall = TextStyle(fontFamily = AppFontFamily, fontWeight = FontWeight.Medium, fontSize = 11.sp, lineHeight = 16.sp),
     )
 
-/** Specialized text styles for code blocks and reasoning sections. */
 object AppTypographyStyles {
     val code = TextStyle(
         fontFamily = AppCodeFontFamily,
@@ -147,7 +136,6 @@ object AppTypographyStyles {
     )
 }
 
-/** Refined Material 3 shapes mapped to AppShape design tokens. */
 private val AppShapes = androidx.compose.material3.Shapes(
     extraSmall = AppShape.extraSmall,
     small = AppShape.small,

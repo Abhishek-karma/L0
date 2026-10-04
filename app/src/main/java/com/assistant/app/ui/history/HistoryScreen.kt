@@ -93,9 +93,6 @@ private val groupLabels = intArrayOf(
     R.string.history_older,
 )
 
-/**
- * Inlet History: Fast scanning, pinned prioritization, and contextual management.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HistoryScreen(

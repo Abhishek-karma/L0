@@ -20,11 +20,6 @@ internal object LibraryLicenses {
     }
 }
 
-/**
- * Starters for the OpenAI-compatible endpoints this app already ships as
- * presets. Each entry only fills the form; the API key always comes from the
- * user. Key URLs are the providers' own console pages.
- */
 internal data class ProviderPreset(
     val name: String,
     val baseUrl: String,
@@ -80,7 +75,6 @@ internal fun presetForBaseUrl(baseUrl: String): ProviderPreset? {
     return ProviderPresets.firstOrNull { it.baseUrl.trimEnd('/') == normalized }
 }
 
-/** The preset the editor is currently showing, or null for a custom endpoint. */
 internal fun presetFor(baseUrl: String, name: String): ProviderPreset? =
     presetForBaseUrl(baseUrl)
         ?: if (isGemini(baseUrl, name)) geminiPreset

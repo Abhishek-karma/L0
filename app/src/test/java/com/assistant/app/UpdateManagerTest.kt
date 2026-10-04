@@ -108,11 +108,10 @@ class UpdateManagerTest {
             scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined),
         )
 
-        // Pre-set that 1.2.0 was already notified
         appPreferences.setLastNotifiedVersion("1.2.0")
 
         manager.checkForUpdates(manual = false)
         assertTrue(manager.updateStatus.value is UpdateStatus.Available)
-        assertEquals(0, notifiedList.size) // Not notified again
+        assertEquals(0, notifiedList.size)
     }
 }

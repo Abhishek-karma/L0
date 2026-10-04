@@ -59,7 +59,6 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 
-/** How often streamed content is reparsed while it grows. */
 private const val STREAM_PARSE_INTERVAL_MS = 60L
 
 @Composable
@@ -99,7 +98,6 @@ fun MessageText(
         }
     }
 
-    // Elegant animated typing cursor for real-time streaming
     val cursorAlpha by if (streaming) {
         val transition = rememberInfiniteTransition(label = "cursor")
         transition.animateFloat(
@@ -403,7 +401,6 @@ private fun TableRow(
     }
 }
 
-// Legacy backward-compatibility wrappers
 fun messageBlocks(
     text: String,
     codeBackground: Color = Color.Transparent,
@@ -419,4 +416,3 @@ fun richText(
 ): AnnotatedString {
     return MarkdownParser.richText(text, codeBackground, linkColor)
 }
-

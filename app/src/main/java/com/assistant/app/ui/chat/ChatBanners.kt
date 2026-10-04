@@ -49,9 +49,6 @@ fun InlineHint(text: String) {
     )
 }
 
-/**
- * Error banner displayed when generation fails, featuring retry and dismiss actions.
- */
 @Composable
 fun ErrorBanner(
     message: String,
@@ -143,9 +140,6 @@ fun ErrorBanner(
     }
 }
 
-/**
- * Banner displayed while editing a previously submitted message.
- */
 @Composable
 fun EditBanner(
     onCancel: () -> Unit,

@@ -17,9 +17,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.UUID
 
-/**
- * Encapsulates active generation session details.
- */
 data class GenerationSession(
     val generationId: String,
     val conversationId: String,
@@ -27,11 +24,6 @@ data class GenerationSession(
     val job: Job,
 )
 
-/**
- * Owns the execution lifecycle of in-flight LLM streaming requests.
- * Guarantees single-generation ownership, prevents concurrent streams,
- * and isolates streaming callbacks to the matching conversation session.
- */
 class GenerationController(
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val clock: () -> Long = System::currentTimeMillis,
@@ -51,10 +43,6 @@ class GenerationController(
     val activeConversationId: String?
         get() = activeSession?.takeIf { it.job.isActive }?.conversationId
 
-    /**
-     * Attempts to claim single-owner rights for a new generation.
-     * Returns a new [GenerationSession] if successful, or null if another generation is active.
-     */
     suspend fun tryStartSession(
         conversationId: String,
         assistantId: String,
@@ -83,10 +71,6 @@ class GenerationController(
         job?.join()
     }
 
-    /**
-     * Executes the stream against [provider] with [request] under [session].
-     * Callbacks are guarded so stale/cancelled sessions do not update UI or persist cross-conversation.
-     */
     suspend fun runStream(
         session: GenerationSession,
         provider: LlmProvider,

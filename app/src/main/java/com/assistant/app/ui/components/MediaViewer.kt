@@ -68,11 +68,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/**
- * Full-screen viewers for message media, with pinch zoom and a save action.
- * Saving uses the system file picker, so no storage permissions are needed.
- */
-
 internal data class DecodedImage(val bitmap: Bitmap, val aspect: Float)
 
 internal suspend fun decodeDownscaled(path: String, maxDim: Int = 2048): DecodedImage? =
@@ -98,10 +93,6 @@ internal suspend fun decodeDownscaled(path: String, maxDim: Int = 2048): Decoded
 
 private val THUMBNAIL_HEIGHT = 120.dp
 
-/**
- * Tappable thumbnail for an attached image, opening the full-screen viewer.
- * Falls back to the file name while decoding or when the file is unreadable.
- */
 @Composable
 fun AttachmentThumbnail(attachment: UiAttachment, onClick: () -> Unit) {
     val decoded = remember(attachment.id, attachment.path) { mutableStateOf<DecodedImage?>(null) }
@@ -147,7 +138,6 @@ fun ImageViewerDialog(attachment: UiAttachment, onDismiss: () -> Unit) {
         ActivityResultContracts.CreateDocument(attachment.mime),
     ) { uri -> saveTarget = uri }
 
-    // Saving streams the app-internal copy to the SAF-picked location.
     LaunchedEffect(saveTarget) {
         val target = saveTarget ?: return@LaunchedEffect
         saveTarget = null
@@ -194,8 +184,6 @@ fun ImageViewerDialog(attachment: UiAttachment, onDismiss: () -> Unit) {
     }
 }
 
-/** Full-screen Mermaid render. View only: no script-to-canvas export, so the
- * WebView keeps a single, height-only bridge. */
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun DiagramViewerDialog(code: String, onDismiss: () -> Unit) {

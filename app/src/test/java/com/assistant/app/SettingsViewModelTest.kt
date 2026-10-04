@@ -37,13 +37,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/**
- * Behavior contract for the settings ViewModel: provider
- * list hydration, add/edit save semantics around stored keys, delete,
- * activation, live validation, the connection test success and failure paths,
- * and the app preferences. Runs against real storage (Robolectric context,
- * real DataStore file, in-memory Room, in-memory key store).
- */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
@@ -54,14 +47,8 @@ class SettingsViewModelTest {
         Dispatchers.resetMain()
     }
 
-    /** Room query work runs inline on the calling thread (Robolectric). */
     private val directExecutor = Executor { it.run() }
 
-    /**
-     * Runs [block] with a ViewModel over real storage and a scripted
-     * provider. `seed` runs before the ViewModel is created, so values it
-     * saves are what the ViewModel hydrates from.
-     */
     private fun runSettingsTest(
         script: List<ScriptedEvent> = listOf(ScriptedEvent.Emit("pong")),
         seed: suspend (ProviderStore, AppPreferences) -> Unit = { _, _ -> },
@@ -100,13 +87,11 @@ class SettingsViewModelTest {
         }
     }
 
-    /** Waits until preferences are hydrated and the provider list has arrived. */
     private suspend fun TestScope.awaitSettled(viewModel: SettingsViewModel) {
         viewModel.uiState.first { it.isLoaded }
         advanceUntilIdle()
     }
 
-    /** Opens the editor for a new provider and fills it with valid values. */
     private fun SettingsViewModel.fillNewValidForm() {
         startAdd()
         setName("OpenAI")
@@ -185,7 +170,6 @@ class SettingsViewModelTest {
         assertEquals("Renamed", viewModel.uiState.value.providers.single().name)
         assertEquals("sk-stored", store.apiKey(id))
 
-        // Typing a new key replaces the stored one.
         viewModel.edit(id)
         viewModel.uiState.first { it.isEditing && it.editingId == id }
         viewModel.setApiKeyInput("sk-replacement")
@@ -242,7 +226,7 @@ class SettingsViewModelTest {
         viewModel.setName("New")
         viewModel.setBaseUrl("https://b.com/v1")
         viewModel.setModelAt(0, "new-model")
-        // Empty key field: the stored key satisfies validation and is used.
+
         viewModel.testConnection()
         viewModel.uiState.first { it.connectionOutcome == ConnectionOutcome.Success }
 
@@ -274,10 +258,9 @@ class SettingsViewModelTest {
 
         assertFalse(viewModel.uiState.value.voiceOutputEnabled)
         viewModel.setVoiceOutputEnabled(true)
-        // Persistence is real file I/O; wait until it lands in the store.
+
         appPreferences.voiceOutputEnabled.firstBounded("voiceOutputEnabled = true") { it }
 
-        // A new ViewModel hydrates the persisted value.
         val reloadedDb = Room.inMemoryDatabaseBuilder(
             ApplicationProvider.getApplicationContext(),
             ChatDatabase::class.java,

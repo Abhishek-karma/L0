@@ -21,12 +21,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/**
- * Unit tests for the markdown subset in [MessageText]: fenced code block
- * detection, inline code spans, clickable link annotations, bold/italic emphasis,
- * blockquotes, and horizontal rules. The helpers are pure, so these run
- * without composition.
- */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class MessageTextTest {
@@ -43,7 +37,7 @@ class MessageTextTest {
         assertTrue(blocks[1] is MessageBlock.Code)
         assertTrue(blocks[2] is MessageBlock.Paragraph)
         assertEquals("val x = 1", (blocks[1] as MessageBlock.Code).code)
-        // The language tag on the fence line is not part of the code.
+
         val code = (blocks[1] as MessageBlock.Code).code
         assertTrue(!code.contains("kotlin"))
         assertEquals("Before", (blocks[0] as MessageBlock.Paragraph).text.text)
@@ -114,8 +108,6 @@ class MessageTextTest {
         val text = "Wrap it in ```json blocks``` for clarity"
         val blocks = messageBlocks(text)
 
-        // The fence is not at a line start, so nothing becomes a Code block
-        // and no prose is swallowed.
         assertEquals(1, blocks.size)
         val paragraph = blocks[0] as MessageBlock.Paragraph
         assertEquals(text, paragraph.text.text)
@@ -124,14 +116,12 @@ class MessageTextTest {
 
     @Test
     fun fenceEndingExactlyAtLanguageTagYieldsNoEmptyCodeBlock() {
-        // An unterminated fence with a language tag and no content yet (the
-        // mid-stream shape) yields no empty Code block — only the prose.
+
         val blocks = messageBlocks("Code:\n```kotlin")
         assertEquals(1, blocks.size)
         assertTrue(blocks[0] is MessageBlock.Paragraph)
         assertEquals("Code:", (blocks[0] as MessageBlock.Paragraph).text.text)
 
-        // A closed empty fence also renders nothing.
         assertEquals(0, messageBlocks("```\n```").size)
     }
 
@@ -212,7 +202,7 @@ class MessageTextTest {
             listOf("https://example.com", "https://x.com/path"),
             links.map { (it.item as LinkAnnotation.Url).url },
         )
-        // The sentence punctuation remains part of the rendered text.
+
         assertEquals("See https://example.com. Also (https://x.com/path) done", text.text)
     }
 
@@ -446,8 +436,6 @@ class MessageTextTest {
         composeRule.onNodeWithText("Copy").assertExists()
     }
 
-
-
     @Test
     fun paragraphBeforeAndAfterTable() {
         val blocks = messageBlocks("Intro paragraph\n\n| A | B |\n| --- | --- |\n| 1 | 2 |\n\nAfter table paragraph")
@@ -519,12 +507,12 @@ class MessageTextTest {
 
     @Test
     fun malformedTableWithUnevenRowsDoesNotCrash() {
-        // More cells in a body row than header: pads with empty strings.
+
         val blocks = messageBlocks("| A | B |\n| --- | --- |\n| 1 | 2 | 3 |")
 
         assertTrue(blocks.single() is MessageBlock.Table)
         val table = blocks.single() as MessageBlock.Table
-        // header has 2 columns, body row has 3 cells → padded to header width
+
         assertEquals(2, table.headers.size)
         assertEquals(listOf("1", "2"), table.rows[0].map { it.text })
     }
@@ -539,7 +527,7 @@ class MessageTextTest {
 
     @Test
     fun streamedTableWithTrailingIncompleteLine() {
-        // Mid-stream table: header and separator but no body yet — treated as table.
+
         val blocks = messageBlocks("| A | B |\n| --- | --- |")
 
         assertTrue(blocks.single() is MessageBlock.Table)
@@ -616,11 +604,10 @@ class MessageTextTest {
 
     @Test
     fun inlineMathAndCurrencySafety() {
-        // Correct inline math
+
         val mathText = richText("Solution is \$x^2 + y^2 = r^2\$ now.")
         assertEquals("Solution is x^2 + y^2 = r^2 now.", mathText.text)
 
-        // Financial false positives must stay literal
         val priceText = richText("It costs \$10 and then another \$20 dollars.")
         assertEquals("It costs \$10 and then another \$20 dollars.", priceText.text)
     }
@@ -660,10 +647,9 @@ class MessageTextTest {
         val start = System.currentTimeMillis()
         val blocks = messageBlocks(sb.toString())
         val duration = System.currentTimeMillis() - start
-        
+
         assertTrue(blocks.isNotEmpty())
-        // Should parse 500 blocks of tables, lists and paragraphs in sub-second (usually < 100ms)
+
         assertTrue("Parsing extremely long text must be extremely fast", duration < 1000)
     }
 }
-

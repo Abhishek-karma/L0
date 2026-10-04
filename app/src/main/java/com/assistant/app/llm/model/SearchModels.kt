@@ -3,7 +3,6 @@ package com.assistant.app.llm.model
 import org.json.JSONArray
 import org.json.JSONObject
 
-/** One web search result shown to the model as context. */
 data class SearchResult(
     val title: String,
     val url: String,
@@ -11,7 +10,6 @@ data class SearchResult(
     val engine: String? = null,
 )
 
-/** Extracted readable page text and title. */
 data class ExtractedContent(
     val title: String,
     val text: String,
@@ -20,11 +18,6 @@ data class ExtractedContent(
 sealed interface SearchOutcome {
     data class Success(val results: List<SearchResult>) : SearchOutcome
 
-    /**
-     * A search failure. [error] carries the user-facing message
-     * ([SearchError.userMessage]); [detail] is optional diagnostics and is
-     * deliberately not rendered in the UI.
-     */
     data class Failure(val error: SearchError, val detail: String? = null) : SearchOutcome
 }
 
@@ -37,7 +30,6 @@ enum class SearchError(val userMessage: String) {
     Unknown("Something went wrong with search."),
 }
 
-/** Serializes the sources persisted under an answer. */
 fun List<SearchResult>.toSearchJson(): String = JSONArray().apply {
     forEach { result ->
         put(
@@ -49,7 +41,6 @@ fun List<SearchResult>.toSearchJson(): String = JSONArray().apply {
     }
 }.toString()
 
-/** Restores persisted sources; entries without a URL are skipped. */
 fun searchResultsFromJson(raw: String?): List<SearchResult> =
     raw?.let { json ->
         runCatching {

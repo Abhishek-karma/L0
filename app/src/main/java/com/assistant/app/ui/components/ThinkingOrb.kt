@@ -26,10 +26,6 @@ private const val ORB_SPIN_MILLIS = 4200
 private const val ORB_TILT = 0.45f
 private const val ORB_WOBBLE = 0.18f
 
-/**
- * Ambient rotating dotted sphere shown while a response is pending.
- * Depth-shaded points on a slowly spinning, gently wobbling sphere.
- */
 @Composable
 fun ThinkingOrb(
     modifier: Modifier = Modifier,
@@ -86,7 +82,6 @@ fun ThinkingOrb(
     }
 }
 
-/** Evenly distributed points on the unit sphere via the Fibonacci lattice. */
 private fun fibonacciSphere(count: Int): List<Triple<Double, Double, Double>> {
     val golden = PI * (3.0 - sqrt(5.0))
     return List(count) { i ->

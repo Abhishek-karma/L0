@@ -38,15 +38,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/**
- * Robolectric Compose tests for the settings screen: the API key field never
- * exposes the stored key until the reveal toggle is on, the connection test is
- * disabled while the form does not validate, and a successful test shows the
- * success message inline.
- *
- * The screen scrolls, so anything below the fold is scrolled into view before
- * it is clicked; touch injection outside the window silently does nothing.
- */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class SettingsScreenTest {
@@ -97,11 +88,6 @@ class SettingsScreenTest {
         composeRule.onAllNodesWithText(label).fetchSemanticsNodes()
             .any { !it.config.contains(SemanticsProperties.Disabled) }
 
-    /**
-     * Opens one settings sub-page from the root menu. The menu is grouped and
-     * scrolls, so a row below the fold has to be scrolled into view first:
-     * touch injection outside the window silently does nothing.
-     */
     private fun openPage(sectionLabel: String) {
         composeRule.onNode(hasScrollAction())
             .performScrollToNode(hasText(sectionLabel))
@@ -109,10 +95,6 @@ class SettingsScreenTest {
         composeRule.waitForIdle()
     }
 
-    /**
-     * Scrolls a sub-page to [titleRes] and asserts it. Page section headers are
-     * rendered upper case, so the match is case-insensitive.
-     */
     private fun assertSectionOnPage(titleRes: Int) {
         val title = context.getString(titleRes)
         composeRule.onNode(hasScrollAction())
@@ -120,14 +102,12 @@ class SettingsScreenTest {
         composeRule.onNodeWithText(title, ignoreCase = true).assertIsDisplayed()
     }
 
-    /** Waits until the add/edit editor's name field is on screen. */
     private fun awaitEditorOpen() {
         composeRule.waitUntil(10_000) {
             composeRule.onAllNodesWithTag(SettingsNameFieldTag).fetchSemanticsNodes().isNotEmpty()
         }
     }
 
-    /** Waits until the validation message is shown (form is currently invalid). */
     private fun awaitValidationError() {
         composeRule.waitUntil(10_000) {
             composeRule.onAllNodesWithText(ProviderStore.ERROR_NAME_REQUIRED)
@@ -144,7 +124,6 @@ class SettingsScreenTest {
             composeRule.onAllNodesWithText("P").fetchSemanticsNodes().isNotEmpty()
         }
 
-        // Opening the editor hydrates the masked placeholder, not the value.
         composeRule.onNodeWithText("P").performClick()
         awaitEditorOpen()
         composeRule.waitUntil(10_000) {
@@ -182,7 +161,6 @@ class SettingsScreenTest {
         composeRule.onNodeWithTag(SettingsModelFieldTag).performTextInput("test-model")
         composeRule.onNodeWithTag(SettingsApiKeyFieldTag).performTextInput("sk-1")
 
-        // The connection test becomes usable once the form validates.
         val testLabel = context.getString(R.string.settings_test_connection)
         composeRule.waitUntil(10_000) { buttonIsEnabled(testLabel) }
         composeRule.onNode(hasScrollAction()).performScrollToNode(hasText(testLabel))
@@ -206,10 +184,9 @@ class SettingsScreenTest {
         val provider = context.getString(R.string.settings_section_provider)
         val appearance = context.getString(R.string.settings_section_appearance)
 
-        // The root is a menu: the areas are listed, not expanded.
         composeRule.onNodeWithText(provider).assertIsDisplayed()
         composeRule.onNodeWithText(appearance).assertIsDisplayed()
-        // Page content is not on screen until its area is opened.
+
         composeRule.onNodeWithText(context.getString(R.string.settings_theme))
             .assertDoesNotExist()
 
@@ -224,7 +201,7 @@ class SettingsScreenTest {
         openPage(context.getString(R.string.settings_section_about))
         val versionLabel = context.getString(R.string.settings_version)
         composeRule.onNodeWithText(versionLabel).assertIsDisplayed()
-        // Read the version like SettingsScreen does, so the test follows the build config.
+
         val versionName = context.packageManager
             .getPackageInfo(context.packageName, 0).versionName ?: ""
         composeRule.onNode(hasScrollAction())
@@ -389,12 +366,11 @@ class SettingsScreenTest {
         composeRule.onNodeWithText(context.getString(R.string.settings_add_provider)).performClick()
         awaitEditorOpen()
 
-        // The type menu is built from the shipped presets plus the custom entry.
         composeRule.onNode(hasScrollAction())
             .performScrollToNode(hasText(context.getString(R.string.settings_provider_label)))
         composeRule.onNodeWithTag(SettingsProviderFieldTag).performClick()
         composeRule.onNodeWithText("OpenAI").assertIsDisplayed()
-        // The custom entry appears in the open menu beside the field's own label.
+
         assertTrue(
             "Custom entry should be listed in the open menu",
             composeRule
@@ -403,7 +379,6 @@ class SettingsScreenTest {
                 .size == 2,
         )
 
-        // Choosing a preset fills the endpoint it stands for.
         composeRule.onNodeWithText("OpenAI").performClick()
         composeRule.onNode(hasScrollAction())
             .performScrollToNode(hasText("https://api.openai.com/v1"))
@@ -424,10 +399,8 @@ class SettingsScreenTest {
             composeRule.onAllNodesWithTag(ModelSelectorSearchTag).fetchSemanticsNodes().isNotEmpty()
         }
 
-        // The search field doubles as free text for endpoints that serve no list.
         composeRule.onNodeWithTag(ModelSelectorSearchTag).performTextInput("typed-model")
 
-        // One tap commits and closes; there is no confirm step anymore.
         composeRule.onNodeWithTag(ModelSelectorRowTag).performClick()
         composeRule.waitUntil(10_000) {
             composeRule.onAllNodesWithText(context.getString(R.string.model_selector_title))
@@ -456,19 +429,15 @@ class SettingsScreenTest {
         var chatBackCalled = false
         setContent(onBack = { chatBackCalled = true })
 
-        // Open About page
         openPage(context.getString(R.string.settings_section_about))
         composeRule.onNodeWithText(context.getString(R.string.settings_about_description)).assertIsDisplayed()
 
-        // Tap back in TopBar
         composeRule.onNodeWithContentDescription(context.getString(R.string.cd_back)).performClick()
         composeRule.waitForIdle()
 
-        // Verifies returned to Settings root, not Chat
         assertTrue("onBack should not be called when popping subpage", !chatBackCalled)
         composeRule.onNodeWithText(context.getString(R.string.settings_section_provider)).assertIsDisplayed()
 
-        // Tap back on Settings root
         composeRule.onNodeWithContentDescription(context.getString(R.string.cd_back)).performClick()
         composeRule.waitForIdle()
         assertTrue("onBack should be called when exiting settings root", chatBackCalled)
@@ -479,17 +448,14 @@ class SettingsScreenTest {
         var chatBackCalled = false
         setContent(onBack = { chatBackCalled = true })
 
-        // Open Provider page
         openPage(context.getString(R.string.settings_section_provider))
         composeRule.onNodeWithText(context.getString(R.string.settings_provider_none)).assertIsDisplayed()
 
-        // Dispatch system back
         composeRule.activityRule.scenario.onActivity { activity ->
             activity.onBackPressedDispatcher.onBackPressed()
         }
         composeRule.waitForIdle()
 
-        // Verifies returned to Settings root
         assertTrue("Chat onBack should not be invoked when subpage was popped", !chatBackCalled)
         composeRule.onNodeWithText(context.getString(R.string.settings_section_provider)).assertIsDisplayed()
     }
@@ -498,7 +464,6 @@ class SettingsScreenTest {
     fun nestedSubpageNavigationRetainsStack() {
         setContent()
 
-        // Settings -> About
         openPage(context.getString(R.string.settings_section_about))
         composeRule.onNodeWithText(context.getString(R.string.settings_about_description)).assertIsDisplayed()
 
@@ -514,7 +479,6 @@ class SettingsScreenTest {
         composeRule.waitForIdle()
         composeRule.onNodeWithText(context.getString(R.string.settings_about_description)).assertIsDisplayed()
 
-        // Back from About -> Settings root
         composeRule.onNodeWithContentDescription(context.getString(R.string.cd_back)).performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithText(context.getString(R.string.settings_section_provider)).assertIsDisplayed()

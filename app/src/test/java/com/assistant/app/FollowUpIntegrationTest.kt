@@ -37,9 +37,6 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.util.concurrent.Executor
 
-/**
- * End-to-end integration and persistence tests for the follow-up suggestion lifecycle.
- */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
@@ -138,7 +135,7 @@ class FollowUpIntegrationTest {
     fun followUpGeneration_timeout() = runTestWithStore(
         script = listOf(ScriptedEvent.Emit("Useful complete response from assistant.")),
         followUpSuggestions = { _, _, _, _ ->
-            // Exceeds TIMEOUT_MS (6000ms)
+
             delay(10_000)
             listOf("Slow question?")
         },
@@ -285,7 +282,6 @@ class FollowUpIntegrationTest {
         viewModel.send("Hello 1")
         advanceTimeBy(50)
 
-        // Switch to new conversation while follow up is in flight
         viewModel.newConversation()
         advanceUntilIdle()
 

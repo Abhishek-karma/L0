@@ -15,12 +15,6 @@ import java.io.IOException
 import java.net.SocketTimeoutException
 import java.net.URLDecoder
 
-/**
- * Keyless web search over DuckDuckGo's no-JavaScript HTML endpoint.
- *
- * The endpoint needs no account, instance, or API key, so search is available
- * as soon as the app is installed.
- */
 class DuckDuckGoSearchProvider(
     private val client: OkHttpClient,
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
@@ -50,8 +44,7 @@ class DuckDuckGoSearchProvider(
 
         try {
             client.newCall(request).execute().use { response ->
-                // The endpoint answers rate limiting with 202 and a body that
-                // carries no results, which is not a transport failure.
+
                 if (response.code == 202) {
                     return@withContext SearchOutcome.Failure(SearchError.RateLimited)
                 }
@@ -121,10 +114,6 @@ class DuckDuckGoSearchProvider(
         return results
     }
 
-    /**
-     * DuckDuckGo wraps result links as `//duckduckgo.com/l/?uddg=<encoded>`.
-     * The real destination is the decoded [uddg] parameter.
-     */
     private fun unwrapRedirect(href: String): String? {
         if (href.isBlank()) return null
         val query = href.substringAfter('?', "")
@@ -146,10 +135,6 @@ class DuckDuckGoSearchProvider(
     }
 }
 
-/**
- * Runs a web search and enriches the top results with clean article text
- * fetched from the result pages.
- */
 class WebSearchClient(
     private val provider: WebSearchProvider,
     private val pageFetcher: PageFetcher,
@@ -175,7 +160,6 @@ class WebSearchClient(
             return@withContext SearchOutcome.Failure(SearchError.NoResults)
         }
 
-        // Fetch top pages to enrich snippets with clean readable article text
         val enrichedResults = results.mapIndexed { index, result ->
             if (index < maxPagesToFetch && (result.url.startsWith("https://") || result.url.startsWith("http://"))) {
                 try {

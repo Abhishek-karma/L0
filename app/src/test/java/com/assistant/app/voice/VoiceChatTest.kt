@@ -28,7 +28,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
-/** Scriptable [VoiceInput.Engine] fake: the test drives the events directly. */
 private class FakeVoiceInputEngine(var available: Boolean = true) : VoiceInput.Engine {
     var started = 0
     var stopped = 0
@@ -50,7 +49,6 @@ private class FakeVoiceInputEngine(var available: Boolean = true) : VoiceInput.E
     }
 }
 
-/** Scriptable [VoiceOutput.Engine] fake: holds the completion for the test. */
 private class FakeVoiceOutputEngine(private val available: Boolean = true) : VoiceOutput.Engine {
     val spoken = mutableListOf<String>()
     val rates = mutableListOf<Float>()
@@ -58,7 +56,7 @@ private class FakeVoiceOutputEngine(private val available: Boolean = true) : Voi
     var voices: List<VoiceOption> = emptyList()
     var pendingDone: (() -> Unit)? = null
     var stopped = 0
-    /** True when stop() discarded an utterance that had not finished. */
+
     var stoppedWhileSpeaking = false
     private set
 
@@ -84,12 +82,6 @@ private class FakeVoiceOutputEngine(private val available: Boolean = true) : Voi
     }
 }
 
-/**
- * Behavior contract for the voice layer over the chat pipeline: recognition
- * lands in the draft (never auto-sends), failures degrade to text, and completed
- * assistant messages are spoken only when voice output is enabled.
- * The platform recognizers themselves are device-only.
- */
 @OptIn(ExperimentalCoroutinesApi::class)
 class VoiceChatTest {
 
@@ -148,7 +140,6 @@ class VoiceChatTest {
         assertEquals(0, viewModel.uiState.value.messages.size)
     }
 
-    /** Triggers [ViewModel.onCleared] the way the framework does, via a store. */
     private fun ChatViewModel.clearViaStoreForTest() {
         val store = ViewModelStore()
         store.put("test", this)
@@ -430,14 +421,10 @@ class VoiceChatTest {
         advanceUntilIdle()
 
         assertEquals(VoiceStatus.Speaking, viewModel.uiState.value.voiceStatus)
-        // The scripted answer completes and is spoken as one utterance.
+
         assertEquals(listOf("Hello there again"), outputEngine.spoken)
     }
 
-    /**
-     * A voice-enabled ViewModel whose provider streams nothing until well
-     * after the test's switch point, so the generation is reliably mid-flight.
-     */
     private fun midGenerationViewModel(mainDispatcher: CoroutineDispatcher): ChatViewModel {
         Dispatchers.setMain(mainDispatcher)
         val provider = FakeLlmProvider(
@@ -461,7 +448,6 @@ class VoiceChatTest {
         input.emit(VoiceInputEvent.Failed(VoiceInputError.MicUnavailable))
         assertEquals(VoiceStatus.Error, viewModel.uiState.value.voiceStatus)
 
-        // Tapping mic while in Error state resets it and starts listening again
         viewModel.onMicClick()
         assertEquals(VoiceStatus.Listening, viewModel.uiState.value.voiceStatus)
     }
@@ -484,4 +470,3 @@ class VoiceChatTest {
         assertEquals(VoiceStatus.Error, unavailVm.uiState.value.voiceStatus)
     }
 }
-

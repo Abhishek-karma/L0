@@ -10,53 +10,27 @@ import java.io.File
 import java.io.IOException
 import java.security.GeneralSecurityException
 
-/**
- * Storage for API keys, one slot per provider id. An interface for one reason:
- * EncryptedSharedPreferences needs the hardware AndroidKeyStore, which does not
- * exist under Robolectric, so tests supply an in-memory implementation.
- */
 interface SecureKeyStore {
 
     fun apiKey(id: Long): String?
 
     fun setApiKey(id: Long, value: String?)
 
-    /** The pre-1.2 single-provider key, read once for seeding. */
     fun legacyApiKey(): String?
 
     fun deleteLegacyApiKey()
 }
 
-/**
- * [SecureKeyStore] backed by [EncryptedSharedPreferences] with an
- * AndroidKeyStore master key (AES256-GCM). Keys never appear in DataStore, in
- * backups, or in source; a device restore cannot decrypt them, which is why
- * the app disables backup.
- *
- * Corruption recovery: an unreadable prefs file is deleted and creation
- * retried once; if that also fails the store degrades to a permanent empty
- * state — [apiKey] returns null and [setApiKey] is a safe no-op — so the user
- * can re-enter keys instead of the app crashing on every access.
- *
- * The prefs file is built lazily: the first access generates the Keystore
- * master key, which must not happen during app startup.
- */
 class EncryptedSecureKeyStore(context: Context) : SecureKeyStore {
 
     private val appContext = context.applicationContext
 
-    /** Null when the storage is permanently unavailable. */
     private val preferences: SharedPreferences? by lazy {
         createWithRecovery(::createEncrypted)
     }
 
     override fun apiKey(id: Long): String? = preferences?.getString(keyFor(id), null)
 
-    /**
-     * Writes are committed synchronously. Losing an API key to a process death
-     * between the write and the async disk flush would leave the user with a
-     * provider that cannot authenticate and no way to tell why.
-     */
     @SuppressLint("ApplySharedPref")
     override fun setApiKey(id: Long, value: String?) {
         val prefs = preferences ?: return
@@ -74,12 +48,6 @@ class EncryptedSecureKeyStore(context: Context) : SecureKeyStore {
 
     private fun keyFor(id: Long): String = "${KEY_API_KEY}_$id"
 
-    /**
-     * Creates the preferences, tolerating corruption: on failure the (corrupt)
-     * file is deleted and creation retried once; null means stay disabled.
-     * Unknown failures are rethrown — only [GeneralSecurityException] and
-     * [IOException] count as corruption.
-     */
     internal fun createWithRecovery(create: () -> SharedPreferences): SharedPreferences? =
         try {
             create()
@@ -92,7 +60,7 @@ class EncryptedSecureKeyStore(context: Context) : SecureKeyStore {
         }
 
     private fun resetAndRetry(first: Exception, create: () -> SharedPreferences): SharedPreferences? {
-        // Log only the exception class name; its text can echo storage paths.
+
         Log.w(TAG, "Encrypted preferences unreadable (${first.javaClass.simpleName}); resetting")
         prefsFile().delete()
         return try {
@@ -120,7 +88,6 @@ class EncryptedSecureKeyStore(context: Context) : SecureKeyStore {
         )
     }
 
-    /** On-disk location of the preferences file, for corruption recovery. */
     internal fun prefsFile(): File =        File(appContext.applicationInfo.dataDir, "shared_prefs/$PREFS_FILE.xml")
 
     private companion object {

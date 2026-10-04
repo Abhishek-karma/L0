@@ -7,14 +7,6 @@ import android.speech.tts.UtteranceProgressListener
 import android.speech.tts.Voice
 import java.util.concurrent.atomic.AtomicLong
 
-/**
- * One selectable speech voice.
- *
- * [id] is the stable key persisted in preferences: engine, voice name and
- * locale joined, so it survives a restart and cannot collide across engines.
- * [isNatural] marks Google's higher-quality on-device voices, which settings
- * lists first.
- */
 data class VoiceOption(
     val id: String,
     val label: String,
@@ -39,35 +31,18 @@ data class VoiceOption(
             )
         }
 
-        /** The engine's own voice name, the only thing telling two voices apart. */
         fun shortName(id: String): String =
             id.substringAfter(':').substringBeforeLast(':')
     }
 }
 
-/**
- * Text-to-speech of completed assistant messages, on top of the normal text
- * pipeline. If TTS is unavailable or fails, the chat simply stays silent.
- *
- * The platform work is behind [Engine] so tests inject a fake.
- */
 class VoiceOutput(private val engine: Engine) {
 
     interface Engine {
         fun isAvailable(): Boolean
 
-        /**
-         * Delivers the selectable voices once the engine has initialized, to
-         * [onReady] on the main thread. Empty when no engine supplies a voice.
-         */
         fun voices(onReady: (List<VoiceOption>) -> Unit)
 
-        /**
-         * Speaks [text] at [speechRate] (1.0 = normal) using [voiceId] when it
-         * still exists, replacing any utterance in flight. [onDone] runs
-         * exactly once per call — after playback, or immediately when the
-         * utterance could not be played. [stop] does not invoke it.
-         */
         fun speak(text: String, speechRate: Float, voiceId: String?, onDone: () -> Unit)
 
         fun stop()
@@ -82,7 +57,6 @@ class VoiceOutput(private val engine: Engine) {
 
     fun stop() = engine.stop()
 
-    /** An engine for devices (and Robolectric tests) without TTS. */
     companion object {
         fun unavailable(): VoiceOutput = VoiceOutput(object : Engine {
             override fun isAvailable(): Boolean = false
@@ -93,31 +67,17 @@ class VoiceOutput(private val engine: Engine) {
     }
 }
 
-/**
- * [VoiceOutput.Engine] over [TextToSpeech], initialized lazily on first use.
- *
- * Google's TTS is preferred because it ships the Natural voices. It is a
- * user-installed app and may be missing or have no downloaded language, so the
- * engine falls back to the device default automatically — voice output never
- * depends on Google being present, and the user never picks an engine, only a
- * voice.
- *
- * Until initialization finishes (or if it fails) [speak] degrades to an
- * immediate [onDone] so the UI never sticks in a speaking state.
- */
 class AndroidVoiceOutput(context: Context) : VoiceOutput.Engine {
 
     private val appContext = context.applicationContext
 
     private val utteranceIds = AtomicLong()
 
-    /** Set once initialization finished; false means the engine is unusable. */
     @Volatile
     private var ready: Boolean? = null
 
     private var playingDone: (() -> Unit)? = null
 
-    /** The engine package currently bound, or null for the device default. */
     private var boundEngine: String? = null
 
     private var fellBackToDefault = false
@@ -126,8 +86,7 @@ class AndroidVoiceOutput(context: Context) : VoiceOutput.Engine {
 
     override fun isAvailable(): Boolean {
         if (ready != null) return ready == true
-        // Synchronous probe: any installed activity answering the TTS
-        // data-check intent. Full init refines this on first use.
+
         val check = Intent(TextToSpeech.Engine.ACTION_CHECK_TTS_DATA)
         return appContext.packageManager.queryIntentActivities(check, 0).isNotEmpty()
     }
@@ -150,8 +109,7 @@ class AndroidVoiceOutput(context: Context) : VoiceOutput.Engine {
         if (tts == null) bind()
         val engine = tts
         if (engine == null || ready != true) {
-            // Not initialized yet: nothing is speaking, so report done rather
-            // than leave the UI stuck in a speaking state.
+
             onDone()
             return
         }
@@ -171,10 +129,6 @@ class AndroidVoiceOutput(context: Context) : VoiceOutput.Engine {
         tts?.stop()
     }
 
-    /**
-     * Selects [voiceId] when the engine still has it. A voice whose language
-     * pack was removed is ignored instead of failing the utterance.
-     */
     private fun applyVoice(engine: TextToSpeech, voiceId: String?) {
         if (voiceId.isNullOrBlank()) return
         val target = engine.voices?.firstOrNull {
@@ -183,7 +137,6 @@ class AndroidVoiceOutput(context: Context) : VoiceOutput.Engine {
         engine.voice = target
     }
 
-    /** Natural voices first, then by label, so the list is stable. */
     private fun optionsOf(engine: TextToSpeech): List<VoiceOption> {
         val engineId = boundEngine.orEmpty()
         val options = engine.voices.orEmpty().map { VoiceOption.from(engineId, it) }
@@ -193,8 +146,7 @@ class AndroidVoiceOutput(context: Context) : VoiceOutput.Engine {
             .filter { seen.add(it.id) }
             .sortedWith(compareByDescending<VoiceOption> { it.isNatural }.thenBy { it.label })
             .map { option ->
-                // Engines identify voices by raw name, so two voices of one
-                // language are otherwise indistinguishable in the list.
+
                 if ((perLocale[option.locale] ?: 0) > 1) {
                     option.copy(label = "${option.label} · ${VoiceOption.shortName(option.id)}")
                 } else {
@@ -237,8 +189,7 @@ class AndroidVoiceOutput(context: Context) : VoiceOutput.Engine {
             onInit?.invoke(null)
             return
         }
-        // Google without a downloaded Natural voice is worse than the device
-        // default, so switch over once and stay there.
+
         if (boundEngine == GOOGLE_TTS_PACKAGE && !fellBackToDefault && hasNoNaturalVoice(engine)) {
             fellBackToDefault = true
             rebindToDefault(onInit)

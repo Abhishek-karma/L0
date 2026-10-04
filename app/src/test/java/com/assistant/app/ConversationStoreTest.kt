@@ -17,10 +17,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/**
- * Room round-trip behavior of [ConversationStore]: append/read, streamed
- * content updates, truncation on edit, deletion, title generation.
- */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class ConversationStoreTest {
@@ -117,14 +113,12 @@ class ConversationStoreTest {
 
     @Test
     fun titleTruncationDoesNotSplitSurrogatePairs() {
-        val emoji = "\uD83D\uDE00" // one code point, two UTF-16 units
-        // Cutting at 48 units would leave a lone high surrogate; the title
-        // ends on the last whole code point instead.
+        val emoji = "\uD83D\uDE00"
+
         val splitTitle = store.titleFor("a".repeat(47) + emoji + " tail")
         assertEquals("a".repeat(47), splitTitle)
         assertEquals(47, splitTitle.codePointCount(0, splitTitle.length))
 
-        // An emoji that fits whole within the limit survives intact.
         val wholeTitle = store.titleFor("a".repeat(46) + emoji + " tail")
         assertTrue(wholeTitle.startsWith("a".repeat(46) + emoji))
         assertFalse(Character.isHighSurrogate(wholeTitle.last()))
@@ -174,11 +168,9 @@ class ConversationStoreTest {
         )
         assertEquals(listOf("m1", "m1", "m2"), versions.map { it.messageId })
 
-        // Truncation at m1 removes only m1's version rows...
         store.deleteMessagesFrom("m2", "c1")
         assertEquals(listOf("m1", "m1"), store.messageVersions("c1").first().map { it.messageId })
 
-        // ...and deleting the conversation removes the rest.
         store.deleteConversation("c1")
         assertTrue(store.messageVersions("c1").first().isEmpty())
     }

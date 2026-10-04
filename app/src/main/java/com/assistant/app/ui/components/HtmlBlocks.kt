@@ -34,8 +34,6 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.assistant.app.R
 import kotlin.math.ceil
 
-/** Mermaid renderer over the bundled engine, hardened as far as it can be. */
-
 private const val ASSET_URL_PREFIX = "file:///android_asset"
 
 private const val FILE_SCHEME = "file"
@@ -142,8 +140,7 @@ private fun RichBlockWebView(html: String, modifier: Modifier = Modifier) {
                         object {
                             @JavascriptInterface
                             fun setHeight(height: Float) {
-                                // JS bridges run off the main thread; state
-                                // writes must not happen here.
+
                                 post { contentHeight = ceil(height).toInt() }
                             }
                         },

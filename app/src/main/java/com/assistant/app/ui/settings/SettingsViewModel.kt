@@ -55,7 +55,7 @@ data class SettingsUiState(
     val editingId: Long? = null,
     val name: String = "",
     val baseUrl: String = "",
-    /** Saved models being edited; the active one is flagged in [ModelDraft.isActive]. */
+
     val models: List<ModelDraft> = emptyList(),
     val availableModels: List<String> = emptyList(),
     val isLoadingModels: Boolean = false,
@@ -94,7 +94,6 @@ data class SettingsUiState(
             "connectionOutcome=$connectionOutcome)"
 }
 
-/** Bridges the settings UI and ProviderStore for provider management. */
 class SettingsViewModel(
     private val providerStore: ProviderStore,
     private val appPreferences: AppPreferences,
@@ -166,10 +165,6 @@ class SettingsViewModel(
         }
     }
 
-    /**
-     * A device without TTS yields no voices, which is what keeps the picker
-     * hidden there.
-     */
     fun loadVoices() {
         val output = voiceOutput ?: return
         if (!ttsAvailable) return
@@ -273,12 +268,10 @@ class SettingsViewModel(
         isActive = isActive,
     )
 
-    /** Appends a new, non-active model draft. */
     fun addModel() = updateEditor { state ->
         state.copy(models = state.models + ModelDraft())
     }
 
-    /** Removes the model at [index]; a remaining model inherits the active flag. */
     fun removeModel(index: Int) = updateEditor { state ->
         val remaining = state.models.toMutableList().also {
             if (index in it.indices) it.removeAt(index)
@@ -289,17 +282,14 @@ class SettingsViewModel(
         state.copy(models = remaining)
     }
 
-    /** Edits the model at [index]. */
     fun updateModel(index: Int, transform: (ModelDraft) -> ModelDraft) = updateEditor { state ->
         state.copy(models = state.models.mapIndexed { i, draft -> if (i == index) transform(draft) else draft })
     }
 
-    /** Makes the model at [index] the active one of this provider. */
     fun setActiveModel(index: Int) = updateEditor { state ->
         state.copy(models = state.models.mapIndexed { i, draft -> draft.copy(isActive = i == index) })
     }
 
-    /** Selects a model id from the provider's `/models` list for row [index]. */
     fun setModelAt(index: Int, value: String) = updateModel(index) { it.copy(model = value) }
 
     fun setApiKeyInput(value: String) {
@@ -363,7 +353,7 @@ class SettingsViewModel(
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
-                // A failed delete leaves the list and editor unchanged.
+
                 return@launch
             }
             _uiState.update { state ->
@@ -391,7 +381,6 @@ class SettingsViewModel(
         viewModelScope.launch { providerStore.setActive(id) }
     }
 
-
     fun testConnection() {
         if (_uiState.value.isTesting) return
         viewModelScope.launch {
@@ -402,7 +391,7 @@ class SettingsViewModel(
             _uiState.update { it.copy(formError = error) }
             if (error != null) return@launch
             _uiState.update { it.copy(isTesting = true, connectionOutcome = null) }
-            // An empty key field means "keep the stored key".
+
             val apiKey = enteredKey ?: state.storedKey.orEmpty()
             val testModel = state.models.firstOrNull { it.isActive }?.model
                 ?: state.models.firstOrNull()?.model
@@ -421,20 +410,20 @@ class SettingsViewModel(
                         }
                         when (first) {
                             is ChatChunk.Failure -> first
-                            // No chunk before the stream ended: empty response.
+
                             null -> ChatChunk.Failure(ProviderError.InvalidResponse)
-                            // A delta arrived: connection, auth, and model work.
+
                             else -> null
                         }
                     } catch (e: TimeoutCancellationException) {
-                        // A timeout is an outcome, not a cancellation.
+
                         ChatChunk.Failure(ProviderError.Timeout)
                     }
                 }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                // Class name only: messages could echo request configuration.
+
                 Log.w(TAG, "Connection test failed (${e.javaClass.simpleName})")
                 ChatChunk.Failure(ProviderError.Unknown)
             }
@@ -449,7 +438,6 @@ class SettingsViewModel(
         }
     }
 
-
     fun setVoiceOutputEnabled(enabled: Boolean) {
         if (!ttsAvailable) return
         _uiState.update { it.copy(voiceOutputEnabled = enabled) }
@@ -459,7 +447,7 @@ class SettingsViewModel(
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
-                // Revert on persist failure so the UI and store agree.
+
                 _uiState.update { it.copy(voiceOutputEnabled = !enabled) }
             }
         }
@@ -493,10 +481,6 @@ class SettingsViewModel(
         }
     }
 
-    /**
-     * A voice whose pack was removed is stored anyway: the engine ignores
-     * unknown ids at speak time, so this must not fail.
-     */
     fun setVoiceId(voiceId: String?) {
         val previous = _uiState.value.voiceId
         _uiState.update { it.copy(voiceId = voiceId) }
@@ -539,7 +523,6 @@ class SettingsViewModel(
         }
     }
 
-
     fun setReasoningVisible(visible: Boolean) {
         val previous = _uiState.value.reasoningVisible
         _uiState.update { it.copy(reasoningVisible = visible) }
@@ -560,7 +543,7 @@ class SettingsViewModel(
     }
 
     private fun onFormChanged() {
-        // A stale result no longer describes the edited config.
+
         _uiState.update { it.copy(connectionOutcome = null) }
         revalidate()
     }

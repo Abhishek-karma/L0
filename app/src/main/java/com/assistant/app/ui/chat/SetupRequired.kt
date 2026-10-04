@@ -28,9 +28,6 @@ import com.assistant.app.ui.components.AppIcons
 import com.assistant.app.ui.theme.AppShape
 import com.assistant.app.ui.theme.AppSpacing
 
-/**
- * Shown instead of the conversation canvas while no LLM provider is configured.
- */
 @Composable
 fun SetupRequired(
     onOpenSettings: () -> Unit,

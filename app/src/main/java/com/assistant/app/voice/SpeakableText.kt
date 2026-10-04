@@ -1,11 +1,5 @@
 package com.assistant.app.voice
 
-/**
- * Converts assistant markdown to speakable plain text: fenced code blocks are
- * dropped entirely, inline code keeps its content, emphasis markers are
- * removed, links/images keep their visible text, headings and list markers
- * are stripped, and whitespace is collapsed.
- */
 fun speakableText(markdown: String): String {
     var text = markdown.replace(Regex("```[\\s\\S]*?```"), " ")
     text = text.replace(Regex("!\\[([^\\]]*)]\\([^)]*\\)"), "$1")

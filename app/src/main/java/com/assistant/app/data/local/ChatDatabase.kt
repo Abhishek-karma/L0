@@ -14,10 +14,6 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.flow.Flow
 
-/**
- * One row per conversation; [updatedAt] drives the history ordering and
- * [pinned] sorts conversations above unpinned ones.
- */
 @Entity(tableName = "conversations")
 data class ConversationEntity(
     @PrimaryKey val id: String,
@@ -25,19 +21,10 @@ data class ConversationEntity(
     val createdAt: Long,
     val updatedAt: Long,
     @ColumnInfo(defaultValue = "0") val pinned: Boolean = false,
-    /** Whether web search is enabled for this conversation. */
+
     @ColumnInfo(defaultValue = "0") val searchEnabled: Boolean = false,
 )
 
-/**
- * One row per user/assistant message. [role] is the [com.assistant.app.llm.model.Role]
- * name; system messages are never persisted. [content] is conversation text only —
- * provider credentials never enter message records.
-
- * [selectedVersion] indexes into the message's answer versions (rows in
- * [MessageVersionEntity]); [followUps] holds the suggested follow-up questions
- * for this answer, newline-separated, when any were generated.
- */
 @Entity(tableName = "messages", indices = [Index("conversationId")])
 data class MessageEntity(
     @PrimaryKey val id: String,
@@ -48,11 +35,10 @@ data class MessageEntity(
     @ColumnInfo(defaultValue = "0") val selectedVersion: Int = 0,
     val followUps: String? = null,
     @ColumnInfo(defaultValue = "''") val reasoning: String = "",
-    /** JSON-encoded web sources of this answer; null when none. */
+
     val sources: String? = null,
 )
 
-/** One completed answer of an assistant message; rowid order is answer order. */
 @Entity(tableName = "message_versions", indices = [Index("messageId")])
 data class MessageVersionEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -60,12 +46,6 @@ data class MessageVersionEntity(
     val content: String,
 )
 
-/**
- * One saved OpenAI-compatible provider configuration; its API key lives in
- * [com.assistant.app.data.settings.SecureKeyStore] under [ProviderEntity.id].
- * Exactly one row has [isActive] set — the provider the chat uses.
- * Saved models live in [ProviderModelEntity], one active model per provider.
- */
 @Entity(tableName = "providers")
 data class ProviderEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -74,7 +54,6 @@ data class ProviderEntity(
     val isActive: Boolean = false,
 )
 
-/** One saved model of a provider; reasoning capability is detected from [model]'s id. */
 @Entity(tableName = "provider_models", indices = [Index("providerId")])
 data class ProviderModelEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -83,7 +62,6 @@ data class ProviderModelEntity(
     val isActive: Boolean = false,
 )
 
-/** A provider row plus the name of its active model (null when it has none). */
 data class ProviderWithActiveModel(
     val id: Long,
     val name: String,
@@ -119,7 +97,6 @@ interface ProviderDao {
     @Query("DELETE FROM providers WHERE id = :id")
     suspend fun delete(id: Long)
 
-    /** Marks [id] the single active provider. */
     @Query("UPDATE providers SET isActive = CASE WHEN id = :id THEN 1 ELSE 0 END")
     suspend fun setActive(id: Long)
 
@@ -160,7 +137,6 @@ interface ProviderModelDao {
     @Query("DELETE FROM provider_models WHERE providerId = :providerId")
     suspend fun deleteForProvider(providerId: Long)
 
-    /** Marks [id] the single active model within its provider. */
     @Query(
         "UPDATE provider_models SET isActive = CASE WHEN id = :id THEN 1 ELSE 0 END " +
             "WHERE providerId = :providerId",
@@ -174,12 +150,6 @@ interface ProviderModelDao {
     suspend fun byId(id: Long): ProviderModelEntity?
 }
 
-/**
- * One file attached to a user message. [kind] is the
- * [com.assistant.app.llm.model.UiAttachment.Kind] name; [path] is the
- * app-internal copy of the file that survives process death. Attachment rows
- * are deleted with their messages.
- */
 @Entity(tableName = "attachments", indices = [Index("messageId")])
 data class AttachmentEntity(
     @PrimaryKey val id: String,
@@ -251,7 +221,6 @@ interface MessageDao {
     @Query("UPDATE messages SET sources = :sources WHERE id = :id")
     suspend fun updateSources(id: String, sources: String?)
 
-    /** Answer versions of one conversation, insertion-ordered per message. */
     @Query(
         "SELECT message_versions.* FROM message_versions " +
             "JOIN messages ON messages.id = message_versions.messageId " +
@@ -263,18 +232,12 @@ interface MessageDao {
     @Insert
     suspend fun insertVersion(version: MessageVersionEntity)
 
-    /**
- * Deletes [messageId] and every message inserted after it in
- * [conversationId] (rowid order = insert order, robust against equal
- * createdAt values). Used for edit/resend and regenerate truncation.
-     */
     @Query(
         "DELETE FROM messages WHERE conversationId = :conversationId " +
             "AND rowid >= (SELECT rowid FROM messages WHERE id = :messageId)",
     )
     suspend fun deleteFrom(messageId: String, conversationId: String)
 
-    /** Version rows of [messageId] and of every message inserted after it. */
     @Query(
         "DELETE FROM message_versions WHERE messageId IN (SELECT id FROM messages " +
             "WHERE conversationId = :conversationId " +
@@ -301,7 +264,6 @@ interface AttachmentDao {
     @Query("SELECT path FROM attachments WHERE conversationId = :conversationId")
     suspend fun pathsForConversation(conversationId: String): List<String>
 
-    /** Attachment rows of [messageId] and of every message inserted after it. */
     @Query(
         "SELECT * FROM attachments WHERE messageId IN (SELECT id FROM messages " +
             "WHERE conversationId = :conversationId " +
@@ -346,7 +308,7 @@ abstract class ChatDatabase : RoomDatabase() {
     abstract fun attachmentDao(): AttachmentDao
 
     companion object {
-        /** v2: answer versions, follow-up suggestions, pinned conversations. */
+
         val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE messages ADD COLUMN selectedVersion INTEGER NOT NULL DEFAULT 0")
@@ -364,11 +326,6 @@ abstract class ChatDatabase : RoomDatabase() {
             }
         }
 
-        /**
-         * v3: saved provider configurations. The table starts empty; the
-         * pre-1.2 DataStore configuration seeds it once at app start (see
-         * [com.assistant.app.data.ProviderStore.ensureSeeded]).
-         */
         val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
@@ -379,7 +336,6 @@ abstract class ChatDatabase : RoomDatabase() {
             }
         }
 
-        /** v4: per-message attachments. */
         val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
@@ -396,44 +352,30 @@ abstract class ChatDatabase : RoomDatabase() {
             }
         }
 
-        /** v5: per-message model reasoning. */
         val MIGRATION_4_5 = object : Migration(4, 5) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE messages ADD COLUMN reasoning TEXT NOT NULL DEFAULT ''")
             }
         }
 
-        /** v6: web sources persisted under answers. */
         val MIGRATION_5_6 = object : Migration(5, 6) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE messages ADD COLUMN sources TEXT")
             }
         }
 
-        /** v7: per-conversation web-search toggle. */
         val MIGRATION_6_7 = object : Migration(6, 7) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE conversations ADD COLUMN searchEnabled INTEGER NOT NULL DEFAULT 0")
             }
         }
 
-        /**
-         * v8: explicit per-provider reasoning support. Existing rows default to
-         * UNSPECIFIED (unknown), which keeps every current provider safe.
-         */
         val MIGRATION_7_8 = object : Migration(7, 8) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE providers ADD COLUMN reasoningSupport TEXT NOT NULL DEFAULT 'UNSPECIFIED'")
             }
         }
 
-        /**
-         * v9: one provider, many saved models. Each provider's existing model
-         * becomes that provider's first (active) model profile, keeping its
-         * declared reasoning support; model and reasoningSupport leave the
-         * provider row. API keys live in the key store keyed by provider id and
-         * are untouched.
-         */
         val MIGRATION_8_9 = object : Migration(8, 9) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
@@ -475,11 +417,6 @@ abstract class ChatDatabase : RoomDatabase() {
             }
         }
 
-        /**
-         * v10: reasoning capability moves out of storage and is detected from
-         * the model id instead, so the per-model declaration columns go away.
-         * Saved models keep their id, provider, model, and active flag.
-         */
         val MIGRATION_9_10 = object : Migration(9, 10) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(

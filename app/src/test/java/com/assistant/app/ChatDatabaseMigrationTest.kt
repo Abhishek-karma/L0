@@ -25,10 +25,6 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.io.File
 
-/**
- * Migration tests verifying sequential schema upgrades and data survival from
- * previous releases (v1 through v10).
- */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class ChatDatabaseMigrationTest {
@@ -51,7 +47,7 @@ class ChatDatabaseMigrationTest {
 
     @Test
     fun upgradeFromV1ToV10_preservesExistingDataAndEnablesAllNewFields() = runTest {
-        // Step 1: Create a real SQLite database with v1 schema and data
+
         val factory = FrameworkSQLiteOpenHelperFactory()
         val config = androidx.sqlite.db.SupportSQLiteOpenHelper.Configuration.builder(context)
             .name(dbName)
@@ -80,13 +76,11 @@ class ChatDatabaseMigrationTest {
         val helper = factory.create(config)
         val v1Db = helper.writableDatabase
 
-        // Insert legacy v1 rows
         v1Db.execSQL("INSERT INTO conversations (id, title, createdAt, updatedAt) VALUES ('c1', 'Legacy Conversation', 1000, 1000)")
         v1Db.execSQL("INSERT INTO messages (id, conversationId, role, content, createdAt) VALUES ('m1', 'c1', 'USER', 'What is L0?', 1000)")
         v1Db.execSQL("INSERT INTO messages (id, conversationId, role, content, createdAt) VALUES ('m2', 'c1', 'ASSISTANT', 'L0 is an AI chat app.', 1001)")
         v1Db.close()
 
-        // Step 2: Open with Room applying the entire sequential migration chain 1->10
         val roomDb = Room.databaseBuilder(context, ChatDatabase::class.java, dbName)
             .addMigrations(
                 ChatDatabase.MIGRATION_1_2,
@@ -102,7 +96,6 @@ class ChatDatabaseMigrationTest {
             .build()
         database = roomDb
 
-        // Step 3: Verify existing conversation and messages survived intact with correct defaults
         val conv = roomDb.conversationDao().byId("c1")
         assertNotNull(conv)
         assertEquals("c1", conv?.id)
@@ -130,27 +123,21 @@ class ChatDatabaseMigrationTest {
         assertEquals("", assistantMsg.reasoning)
         assertNull(assistantMsg.sources)
 
-        // Step 4: Verify writing and reading all new features on the migrated database
-        // Follow-up suggestions persistence (added in v2)
         roomDb.messageDao().updateFollowUps("m2", "Tell me more?\nHow does it work?")
         val updatedAssistant = roomDb.messageDao().observeForConversation("c1").first()[1]
         assertEquals("Tell me more?\nHow does it work?", updatedAssistant.followUps)
 
-        // Pinned status (added in v2)
         roomDb.conversationDao().setPinned("c1", true)
         assertTrue(roomDb.conversationDao().byId("c1")?.pinned == true)
 
-        // Search enabled toggle (added in v7)
         roomDb.conversationDao().setSearchEnabled("c1", true)
         assertTrue(roomDb.conversationDao().byId("c1")?.searchEnabled == true)
 
-        // Message versions (added in v2)
         roomDb.messageDao().insertVersion(MessageVersionEntity(messageId = "m2", content = "Alternative answer"))
         val versions = roomDb.messageDao().observeVersionsForConversation("c1").first()
         assertEquals(1, versions.size)
         assertEquals("Alternative answer", versions.first().content)
 
-        // Provider entity (added in v3)
         val providerId = roomDb.providerDao().insert(
             ProviderEntity(name = "Local Ollama", baseUrl = "http://localhost:11434/v1", isActive = true)
         )
@@ -160,12 +147,11 @@ class ChatDatabaseMigrationTest {
         val savedProvider = roomDb.providerDao().byId(providerId)
         assertNotNull(savedProvider)
         assertEquals("Local Ollama", savedProvider?.name)
-        // Saved models (v9): one active model on the active provider.
+
         val models = roomDb.providerModelDao().forProvider(providerId)
         assertEquals(1, models.size)
         assertEquals("llama3", models.single().model)
 
-        // Attachments (added in v4)
         val attachment = AttachmentEntity(
             id = "att1",
             messageId = "m1",
@@ -185,7 +171,7 @@ class ChatDatabaseMigrationTest {
 
     @Test
     fun upgradeFromV6ToV10_preservesExistingDataAndMovesProviderModelIntoASavedModel() = runTest {
-        // Build v6 database
+
         val factory = FrameworkSQLiteOpenHelperFactory()
         val config = androidx.sqlite.db.SupportSQLiteOpenHelper.Configuration.builder(context)
             .name(dbName)
@@ -253,7 +239,6 @@ class ChatDatabaseMigrationTest {
         )
         v6Db.close()
 
-        // Migrate from v6 to v10: MIGRATION_6_7 through MIGRATION_9_10
         val roomDb = Room.databaseBuilder(context, ChatDatabase::class.java, dbName)
             .addMigrations(
                 ChatDatabase.MIGRATION_6_7,
@@ -278,12 +263,9 @@ class ChatDatabaseMigrationTest {
         assertEquals("Thought process", assistant.reasoning)
         assertEquals("[{\"title\":\"Src\",\"url\":\"http://src.com\"}]", assistant.sources)
 
-        // Can update searchEnabled in v7+
         roomDb.conversationDao().setSearchEnabled("c6", true)
         assertTrue(roomDb.conversationDao().byId("c6")?.searchEnabled == true)
 
-        // The pre-existing provider keeps its data and its model moves into a saved
-        // model profile.
         val provider = roomDb.providerDao().active()
         assertNotNull(provider)
         assertEquals("Gemini", provider?.name)

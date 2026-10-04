@@ -32,13 +32,6 @@ import org.robolectric.annotation.Config
 import java.util.Collections
 import java.util.concurrent.TimeUnit
 
-/**
- * Behavior contract for the OpenAI-compatible streaming provider against
- * MockWebServer: happy-path streaming, error mapping, request shape, timeout,
- * empty response, and mid-stream cancellation.
- *
- * Runs under Robolectric because the provider parses responses with org.json.
- */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class OpenAICompatibleProviderTest {
@@ -69,7 +62,6 @@ class OpenAICompatibleProviderTest {
     private fun request(model: String = "request-model") =
         ChatRequest(model = model, messages = listOf(Role.USER to "Hi"))
 
-    /** Collects the whole stream; any exception escaping the flow fails the test. */
     private fun collect(provider: LlmProvider, request: ChatRequest): List<ChatChunk> =
         runBlocking {
             val chunks = mutableListOf<ChatChunk>()
@@ -318,7 +310,7 @@ class OpenAICompatibleProviderTest {
         val body = buildString {
             repeat(300) { index -> append(delta("chunk $index")) }
         }
-        // ~64 bytes every 25ms keeps the stream open for seconds.
+
         server.enqueue(MockResponse().setBody(body).throttleBody(64, 25, TimeUnit.MILLISECONDS))
 
         val received = Collections.synchronizedList(mutableListOf<ChatChunk>())
@@ -330,7 +322,7 @@ class OpenAICompatibleProviderTest {
         assertTrue(received.first() is ChatChunk.Delta)
 
         job.cancel()
-        withTimeout(5_000) { job.join() } // prompt completion after cancel
+        withTimeout(5_000) { job.join() }
 
         val sizeAfterJoin = received.size
         delay(300)
@@ -465,7 +457,7 @@ class OpenAICompatibleProviderTest {
             client = OkHttpClient.Builder()
                 .callTimeout(5, TimeUnit.SECONDS)
                 .build(),
-            // Port 9 (discard) is closed everywhere the tests run.
+
             baseUrl = "http://127.0.0.1:9/v1",
             apiKey = "sk-test-key",
             model = "m",

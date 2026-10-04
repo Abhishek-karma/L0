@@ -96,7 +96,7 @@ internal fun ProviderPage(
                 )
             }
         } else {
-            // [ Active provider ]
+
             Text(
                 text = stringResource(R.string.settings_active_provider_section),
                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
@@ -120,7 +120,6 @@ internal fun ProviderPage(
                 }
             }
 
-            // [ Other configured providers ]
             if (otherProviders.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(AppSpacing.md))
                 Text(
@@ -259,7 +258,7 @@ internal fun ProviderEditor(
             .padding(top = AppSpacing.xs, bottom = AppSpacing.xl),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
     ) {
-        // Provider Type Dropdown
+
         ExposedDropdownMenuBox(
             expanded = providerDropdownExpanded,
             onExpandedChange = { if (!state.isSaving) providerDropdownExpanded = !providerDropdownExpanded },
@@ -320,7 +319,6 @@ internal fun ProviderEditor(
             }
         }
 
-        // Only show Name field for custom/OpenAI-compatible providers when needed
         if (!isGeminiProvider) {
             OutlinedTextField(
                 value = state.name,
@@ -334,7 +332,6 @@ internal fun ProviderEditor(
                 enabled = !state.isSaving,
             )
 
-            // Endpoint field (hidden for Gemini)
             OutlinedTextField(
                 value = state.baseUrl,
                 onValueChange = viewModel::setBaseUrl,
@@ -348,7 +345,6 @@ internal fun ProviderEditor(
             )
         }
 
-        // API Key field
         OutlinedTextField(
             value = state.apiKeyInput,
             onValueChange = viewModel::setApiKeyInput,
@@ -385,7 +381,6 @@ internal fun ProviderEditor(
             enabled = !state.isSaving,
         )
 
-        // API Key helper link
         val keyUrl = selectedPreset?.keyUrl
         if (keyUrl != null) {
             Row(
@@ -408,8 +403,7 @@ internal fun ProviderEditor(
         }
 
         var modelSelectorFor by remember { mutableStateOf<Int?>(null) }
-        // Models section: many saved models, one active, each with its own
-        // explicitly declared reasoning capability.
+
         Text(
             text = stringResource(R.string.settings_models_title),
             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
@@ -451,7 +445,6 @@ internal fun ProviderEditor(
             )
         }
 
-        // Test connection button
         OutlinedButton(
             onClick = viewModel::testConnection,
             enabled = state.isLoaded && !state.isTesting && state.formError == null,
@@ -479,7 +472,6 @@ internal fun ProviderEditor(
             )
         }
 
-        // Connection outcome feedback
         state.connectionOutcome?.let { outcome ->
             val color = when (outcome) {
                 is ConnectionOutcome.Success -> MaterialTheme.colorScheme.primary
@@ -515,7 +507,6 @@ internal fun ProviderEditor(
             }
         }
 
-        // Form error
         state.formError?.let { error ->
             Text(
                 text = error,
@@ -524,7 +515,6 @@ internal fun ProviderEditor(
             )
         }
 
-        // Save button
         Button(
             onClick = viewModel::save,
             enabled = state.isLoaded && !state.isSaving && state.formError == null,
@@ -550,7 +540,6 @@ internal fun ProviderEditor(
             )
         }
 
-        // Cancel / Delete actions
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,

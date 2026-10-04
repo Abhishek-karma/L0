@@ -13,16 +13,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/**
- * Corruption recovery of [EncryptedSecureKeyStore]: a corrupt or undecryptable
- * prefs file (for example after a partial device restore) must never crash the
- * app. The store resets (deletes the file, retries creation once) or degrades
- * to a permanent empty state in which the user can re-enter keys.
- *
- * Under Robolectric the real EncryptedSharedPreferences creation always fails
- * (no AndroidKeyStore), so the real class exercises the permanent-failure
- * path; the reset-and-retry path is driven through the injected create step.
- */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class EncryptedSecureKeyStoreTest {

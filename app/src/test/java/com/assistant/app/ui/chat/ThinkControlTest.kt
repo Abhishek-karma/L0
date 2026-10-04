@@ -31,12 +31,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/**
- * Capability-driven Think behavior in [ChatRepository]. Capabilities are
- * passed in as explicit values (never derived from model names), so an
- * arbitrary model id with an unknown/unsupported capability never produces a
- * reasoning parameter.
- */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
@@ -76,8 +70,7 @@ class ThinkControlTest {
             ),
         )
         val repository = SelectionStore().repository(chatLlm, mainDispatcher)
-        // The ViewModel applies the active capability to repository state the
-        // same way when the provider/model changes; mirror that here.
+
         repository.onThinkModelChanged(1L, 10L, capability)
         block(repository, provider, chatLlm)
     }
@@ -207,13 +200,11 @@ class ThinkControlTest {
         repository.setThinkConfig(ReasoningConfig.Budget(8192))
         assertEquals(ReasoningConfig.Budget(8192), store.saved[1L to 10L])
 
-        // The same model id under another provider keeps its own Think state.
         store.saved[2L to 10L] = ReasoningConfig.Off
         assertEquals(ReasoningConfig.Off, store.repository(chatLlm, mainDispatcher).let {
             store.saved[2L to 10L]
         })
 
-        // A stored effort selection is dropped on a budget-only capability.
         store.saved[1L to 10L] = ReasoningConfig.Effort(ReasoningEffort.HIGH)
         val clamped = store.repository(chatLlm, mainDispatcher)
         clamped.onThinkModelChanged(1L, 10L, capability)
@@ -223,7 +214,7 @@ class ThinkControlTest {
     @Test
     fun `switching the active model updates capability and validates the selection`() = runTest {
         val dispatcher = UnconfinedTestDispatcher(testScheduler)
-        // Two models of the same provider: one declared BUDGET, one unspecified.
+
         val budgetReady = ChatLlmState.Ready(
             provider = FakeLlmProvider(helloScript),
             model = "alpha-model",
@@ -246,14 +237,12 @@ class ThinkControlTest {
         repository.setThinkConfig(ReasoningConfig.Budget(4096))
         assertEquals(ReasoningConfig.Budget(4096), repository.uiState.value.thinkConfig)
 
-        // Switching to the unspecified model resets the selection: nothing is sent.
         repository.onThinkModelChanged(1L, 11L, unknownReady.thinkCapability)
         assertEquals(ReasoningConfig.Auto, repository.uiState.value.thinkConfig)
         launch { repository.send("Hi") }
         advanceUntilIdle()
         assertNull(chatLlm.value.let { _ -> FakeLlmProvider(helloScript) }.requests.lastOrNull()?.reasoning)
 
-        // Switching back restores this model's own saved selection.
         repository.onThinkModelChanged(1L, 10L, budgetReady.thinkCapability)
         assertEquals(ReasoningConfig.Budget(4096), repository.uiState.value.thinkConfig)
     }
@@ -277,7 +266,6 @@ class ThinkControlTest {
         repository.setThinkConfig(ReasoningConfig.Effort(ReasoningEffort.LOW))
         assertEquals(ReasoningConfig.Effort(ReasoningEffort.LOW), store.saved[1L to 5L])
 
-        // Same model id, other provider: no selection stored yet.
         val other = store.repository(chatLlm, dispatcher)
         other.onThinkModelChanged(2L, 5L, capability)
         assertEquals(ReasoningConfig.Auto, other.uiState.value.thinkConfig)

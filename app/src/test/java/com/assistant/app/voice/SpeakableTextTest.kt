@@ -3,7 +3,6 @@ package com.assistant.app.voice
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-/** Behavior contract for markdown-to-speech text conversion. */
 class SpeakableTextTest {
 
     @Test

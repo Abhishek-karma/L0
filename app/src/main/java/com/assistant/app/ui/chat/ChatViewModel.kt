@@ -26,10 +26,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-/**
- * Thin UI-facing coordinator bridging Jetpack Compose and application services.
- * Delegates voice processing to [VoiceHandler] and chat operations to [ChatRepository].
- */
 class ChatViewModel(
     private val repository: ChatRepository,
     chatLlm: StateFlow<ChatLlmState>,
@@ -77,7 +73,6 @@ class ChatViewModel(
             initialValue = emptyList(),
         )
 
-    /** Saved models of the active provider, for the drawer's model switcher. */
     val savedModels: StateFlow<List<ProviderModelEntity>> = savedModels
         .stateIn(
             scope = viewModelScope,

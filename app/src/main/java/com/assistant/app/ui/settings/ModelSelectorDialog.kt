@@ -42,17 +42,6 @@ import com.assistant.app.ui.theme.AppSpacing
 internal const val ModelSelectorSearchTag = "model_selector_search_field"
 internal const val ModelSelectorRowTag = "model_selector_row"
 
-/**
- * The models the edited provider reported, filtered by a search box, plus the
- * typed value for anything not listed. The list comes from the provider's own
- * `GET /models`, so a self-hosted endpoint shows what it actually serves; when
- * it cannot be asked, the field stays free-text.
- *
- * A bottom sheet, like the other full-width overlays: the list can be long, and
- * a sheet keeps every row thumb-reachable instead of trapping it in a dialog.
- * A tap commits and closes, matching the chat's own switcher, so choosing takes
- * one gesture and dismissing the sheet leaves the model untouched.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ModelSelectorDialog(
@@ -172,7 +161,6 @@ fun ModelSelectorDialog(
     }
 }
 
-/** The whole row is the target; the selected row is marked with a check. */
 @Composable
 private fun ModelRow(
     label: String,

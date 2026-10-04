@@ -45,11 +45,10 @@ class SemanticVersionTest {
 
     @Test
     fun handlePreReleaseVersions() {
-        // Release is newer than pre-release of the same version
+
         assertTrue(SemanticVersion.isNewer(latest = "1.0.0", current = "1.0.0-rc1"))
         assertFalse(SemanticVersion.isNewer(latest = "1.0.0-rc1", current = "1.0.0"))
 
-        // Higher patch pre-release is newer than lower patch release
         assertTrue(SemanticVersion.isNewer(latest = "1.0.1-rc1", current = "1.0.0"))
     }
 }

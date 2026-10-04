@@ -11,9 +11,6 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 
-/**
- * Predictable, 4dp-base spacing scale for the entire application.
- */
 object AppSpacing {
     val xxs = 2.dp
     val xs = 4.dp
@@ -25,9 +22,6 @@ object AppSpacing {
     val xxxl = 48.dp
 }
 
-/**
- * Unified shape design tokens. Avoid random radii across composables.
- */
 object AppShape {
     val extraSmall = RoundedCornerShape(8.dp)
     val small = RoundedCornerShape(12.dp)
@@ -36,7 +30,6 @@ object AppShape {
     val extraLarge = RoundedCornerShape(32.dp)
     val pill = RoundedCornerShape(50)
 
-    // Specific conversational components mapped to standard tokens
     val userBubble = RoundedCornerShape(20.dp, 20.dp, 4.dp, 20.dp)
     val assistantBubble = RoundedCornerShape(4.dp, 20.dp, 20.dp, 20.dp)
     val composer = RoundedCornerShape(28.dp)
@@ -44,9 +37,6 @@ object AppShape {
     val sheet = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
 }
 
-/**
- * Dimensions and touch target standards.
- */
 object AppDimens {
     val minTouchTarget = 48.dp
     val prominentTouchTarget = 56.dp
@@ -54,9 +44,6 @@ object AppDimens {
     val maxContentWidth = 720.dp
 }
 
-/**
- * Motion tokens: swift, restrained, respectful of system accessibility settings.
- */
 object AppMotion {
     const val FAST = 120
     const val MEDIUM = 200

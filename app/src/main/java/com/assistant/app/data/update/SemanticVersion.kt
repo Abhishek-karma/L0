@@ -1,8 +1,5 @@
 package com.assistant.app.data.update
 
-/**
- * Parses and compares semantic version strings (e.g., "1.0.0", "v1.2.3").
- */
 data class SemanticVersion(
     val major: Int,
     val minor: Int,

@@ -53,10 +53,6 @@ import kotlinx.coroutines.launch
 
 private const val PAGE_COUNT = 3
 
-/**
- * Premium, spacious onboarding flow introducing the core product values:
- * What this app is -> What you control -> How to start quickly.
- */
 @Composable
 fun OnboardingScreen(
     onDone: () -> Unit,
@@ -86,7 +82,7 @@ fun OnboardingScreen(
                 .padding(horizontal = AppSpacing.xl, vertical = AppSpacing.md),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // Top Bar
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -129,7 +125,6 @@ fun OnboardingScreen(
                 }
             }
 
-            // Pager Canvas
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier
@@ -141,7 +136,6 @@ fun OnboardingScreen(
 
             Spacer(Modifier.height(AppSpacing.md))
 
-            // Progress Indicator Dots
             Row(
                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
@@ -172,7 +166,6 @@ fun OnboardingScreen(
 
             Spacer(Modifier.height(AppSpacing.md))
 
-            // Prominent Primary CTA Button
             Button(
                 onClick = {
                     if (isLast) {

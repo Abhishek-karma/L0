@@ -54,9 +54,6 @@ internal data class SearchResultItem(
 
 private const val RECENT_COUNT = 8
 
-/**
- * Inlet Search: Clean query filtering over conversation history.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(

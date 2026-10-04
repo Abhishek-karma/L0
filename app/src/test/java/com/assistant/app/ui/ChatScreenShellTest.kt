@@ -44,10 +44,6 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import kotlinx.coroutines.runBlocking
 
-/**
- * Robolectric Compose test for the chat screen shell: top bar identity,
- * drawer access, and the empty-state statement.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
@@ -72,14 +68,12 @@ class ChatScreenShellTest {
                     ChatScreen(
                         onOpenSettings = {},
                         viewModelFactory = ScriptedChatFixture(emptyList()).factory,
-                        onOpenDrawer = { /* the drawer test below covers reachability */ },
+                        onOpenDrawer = {  },
                     )
                 }
             }
         }
 
-        // The top bar carries the app identity only; the active model lives in the
-        // drawer switcher and must not appear in the chat surface.
         val appName = composeRule.activity.getString(R.string.app_name)
         assertTrue(
             "The app name should be visible in the chat shell",
@@ -118,7 +112,6 @@ class ChatScreenShellTest {
             }
         }
 
-        // Example prompts are tappable cards, not bare text.
         val prompt = composeRule.activity.getString(R.string.chat_prompt_1)
         composeRule.onNodeWithText(prompt).assertIsDisplayed().performClick()
     }
@@ -141,7 +134,6 @@ class ChatScreenShellTest {
         val speaker = composeRule.activity.getString(R.string.cd_toggle_speaker)
         composeRule.onNodeWithContentDescription(speaker).assertIsDisplayed()
 
-        // Muting must not remove the only control that can unmute.
         composeRule.onNodeWithContentDescription(speaker).performClick()
         composeRule.onNodeWithContentDescription(speaker).assertIsDisplayed()
     }
@@ -178,15 +170,11 @@ class ChatScreenShellTest {
             }
         }
 
-        // Pinned to the newest item: streaming would follow along.
         composeRule.runOnIdle { assertTrue(listState.isNearBottom(0f)) }
 
-        // A few pixels of overscroll or rounding still counts as the bottom,
-        // so a bounce never hands control to the app.
         composeRule.runOnIdle { runBlocking { listState.scrollBy(20f) } }
         composeRule.runOnIdle { assertTrue(listState.isNearBottom(64f)) }
 
-        // Real scrolling away is not the bottom any more.
         composeRule.runOnIdle { runBlocking { listState.scrollBy(400f) } }
         composeRule.runOnIdle { assertFalse(listState.isNearBottom(64f)) }
     }
@@ -217,13 +205,10 @@ class ChatScreenShellTest {
             }
         }
 
-        // The active-model card opens the switcher; both models must be listed.
         composeRule.onNodeWithText("gpt-4o").performClick()
         composeRule.onNodeWithText("llama3").assertIsDisplayed()
         composeRule.onNodeWithText("Local").assertIsDisplayed()
 
-        // The inactive model must be tappable: a non-active row that reads as
-        // "not selected" would be disabled, and the switcher would be a dead end.
         composeRule.onNodeWithText("llama3").performClick()
         assertEquals(2L, selectedId)
     }
@@ -275,7 +260,6 @@ class ChatScreenShellTest {
         }
         composeRule.waitForIdle()
 
-        // Send a turn so the transcript, not the empty home, is on screen.
         composeRule.onNodeWithTag(ComposerInputTag).performTextInput("Hi")
         composeRule.onNodeWithContentDescription("Send").performClick()
         composeRule.waitUntil {
@@ -285,19 +269,18 @@ class ChatScreenShellTest {
 
         composeRule.onNodeWithText(LONG_ANSWER).assertIsDisplayed()
         composeRule.onNodeWithTag(ComposerInputTag).assertIsDisplayed()
-        // Chips are generated after the answer lands, so wait for them to arrive.
+
         composeRule.waitUntil {
             composeRule.onAllNodesWithText("Ask about the setup?").fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Ask about the setup?").assertIsDisplayed().performClick()
 
-        // Tapping a chip must drop it into the composer so it can be sent.
         composeRule.waitForIdle()
         composeRule.onNodeWithTag(ComposerInputTag).assertTextEquals("Ask about the setup?")
     }
 
     private companion object {
-        /** Over the length that earns a follow-up request. */
+
         const val LONG_ANSWER =
             "A considerably longer answer so the follow-up generator is willing to " +
                 "spend a second request on it, padded out well past the minimum " +

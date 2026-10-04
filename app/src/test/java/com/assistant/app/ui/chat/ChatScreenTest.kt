@@ -35,11 +35,6 @@ import kotlinx.coroutines.CompletableDeferred
 
 private const val WAIT_MS = 5_000L
 
-/**
- * Robolectric Compose tests for the conversation screen, driven end-to-end
- * against the scripted fake provider: send + streaming, stop, error/retry,
- * and the new-chat action.
- */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class ChatScreenTest {
@@ -75,11 +70,9 @@ class ChatScreenTest {
         typeAndSend("First")
         waitUntilText("First reply")
 
-        // Long-press the user message and choose Edit and resend.
         composeRule.onNodeWithText("First").performTouchInput { longClick() }
         composeRule.onNodeWithText(string(R.string.menu_edit_and_resend)).performClick()
 
-        // Edit mode routes the message content through the composer.
         composeRule.onNodeWithText(string(R.string.edit_banner_label)).assertIsDisplayed()
         composeRule.onNodeWithTag(ComposerInputTag).performTextReplacement("Edited")
 
@@ -89,9 +82,9 @@ class ChatScreenTest {
         waitUntilText("Edited reply")
         composeRule.onNodeWithText("Edited").assertIsDisplayed()
         composeRule.onNodeWithText("Edited reply").assertIsDisplayed()
-        // Edit mode ended with the send.
+
         composeRule.onNodeWithText(string(R.string.edit_banner_label)).assertDoesNotExist()
-        // Everything after the edited user message was truncated.
+
         assertTrue(composeRule.onAllNodesWithText("First reply").fetchSemanticsNodes().isEmpty())
     }
 
@@ -118,7 +111,6 @@ class ChatScreenTest {
         )
         setContent(fixture)
 
-        // Send is disabled while the draft is blank.
         composeRule.onNodeWithContentDescription(string(R.string.cd_send)).assertIsNotEnabled()
 
         typeAndSend("Hi")
@@ -136,7 +128,6 @@ class ChatScreenTest {
         setContent(fixture)
         typeAndSend("Hi")
 
-        // The caret is appended while streaming, so match by substring.
         waitUntilText("Hel", substring = true)
         composeRule.onNodeWithContentDescription(string(R.string.cd_stop)).assertIsDisplayed()
         composeRule.onNodeWithContentDescription(string(R.string.cd_send)).assertDoesNotExist()
@@ -146,7 +137,6 @@ class ChatScreenTest {
         waitUntilContentDescription(string(R.string.cd_send))
         composeRule.onNodeWithText("Hel").assertIsDisplayed()
 
-        // The composer is live again: it accepts input, which re-enables send.
         composeRule.onNodeWithTag(ComposerInputTag).performTextInput(" and more")
         composeRule.onNodeWithContentDescription(string(R.string.cd_send)).assertIsEnabled()
     }
@@ -159,7 +149,6 @@ class ChatScreenTest {
         setContent(fixture)
         typeAndSend("Hi")
 
-        // The banner text is exactly the provider's mapped user message.
         waitUntilText(ProviderError.InvalidCredentials.userMessage)
         composeRule.onNodeWithText(string(R.string.error_retry)).assertIsDisplayed()
 
@@ -179,11 +168,9 @@ class ChatScreenTest {
         )
         setContent(fixture)
 
-        // Web search on for the conversation, then send a question.
         composeRule.onNodeWithContentDescription(string(R.string.cd_toggle_search)).performClick()
         typeAndSend("Question")
 
-        // The wait is visible and the turn is cancellable before streaming.
         waitUntilContentDescription(string(R.string.cd_stop))
         composeRule.onNodeWithContentDescription(string(R.string.cd_send)).assertDoesNotExist()
         waitUntilText(string(R.string.status_searching_web))
@@ -202,7 +189,6 @@ class ChatScreenTest {
             settingsOpened = true
         }
 
-        // The calm setup state replaces the conversation area and the composer.
         composeRule.onNodeWithText(string(R.string.chat_setup_required)).assertIsDisplayed()
         composeRule.onNodeWithText(string(R.string.chat_open_settings)).assertIsDisplayed()
         composeRule.onNodeWithTag(ComposerInputTag).assertDoesNotExist()

@@ -3,7 +3,6 @@ package com.assistant.app.ui.chat
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-/** Bucket boundaries of the home greeting. */
 class GreetingTest {
 
     @Test

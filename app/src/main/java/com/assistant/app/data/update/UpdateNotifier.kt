@@ -87,7 +87,7 @@ class AndroidUpdateNotifier(private val context: Context) : UpdateNotifier {
         try {
             notificationManager.notify(NOTIFICATION_ID, notification)
         } catch (_: SecurityException) {
-            // Permission revoked concurrently
+
         }
     }
 

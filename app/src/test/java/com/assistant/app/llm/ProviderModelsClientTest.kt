@@ -13,14 +13,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/**
- * The model picker lists what the endpoint actually serves, so the client has
- * to parse the OpenAI-compatible `/models` envelope and turn anything
- * unexpected into a reported failure rather than a silent empty list.
- *
- * Robolectric supplies the real `org.json` implementation, which is not mocked
- * in a plain JVM test.
- */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class ProviderModelsClientTest {

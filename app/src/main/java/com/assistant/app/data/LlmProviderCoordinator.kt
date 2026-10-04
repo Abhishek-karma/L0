@@ -14,10 +14,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 
-/**
- * Coordinates the active LLM provider's lifecycle and produces [ChatLlmState]
- * based on saved provider configurations, their active models, and API keys.
- */
 class LlmProviderCoordinator(
     private val providerStore: ProviderStore,
     private val httpClient: OkHttpClient,

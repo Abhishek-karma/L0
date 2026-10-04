@@ -9,8 +9,6 @@ import org.gradle.api.artifacts.ResolvedArtifact
 import java.util.Properties
 import java.util.zip.ZipFile
 
-// Release signing comes from keystore.properties (gitignored, written by CI or locally);
-// when the file is absent the release build stays unsigned.
 val keystoreProperties = Properties()
 rootProject.file("keystore.properties").takeIf { it.exists() }?.inputStream()?.use { keystoreProperties.load(it) }
 
@@ -26,7 +24,7 @@ android {
         applicationId = "com.aistudio.inletchat.wzptbq"
         minSdk = 26
         targetSdk = 35
-        // Overridden by the release workflow from the pushed tag.
+
         versionCode = (project.findProperty("versionCode") as String?)?.toInt() ?: 1
         versionName = project.findProperty("versionName") as String? ?: "0.0.1"
     }
@@ -76,15 +74,14 @@ android {
 
     testOptions {
         unitTests {
-            // Required for Robolectric tests.
+
             isIncludeAndroidResources = true
         }
     }
 }
 
 // The licenses file is written straight into the merged assets of each variant
-// rather than registered as an extra asset source dir, which would make every
-// consumer of the merged assets need a dependency on the generator.
+
 val generatedLicensesDir = layout.buildDirectory.dir("generated/licenses")
 
 /**
@@ -128,8 +125,7 @@ val generateDependencyLicenses by tasks.registering {
          * declaration says so rather than getting one invented for it.
          */
         fun declaredLicenses(artifact: ResolvedArtifact): Pair<List<String>, List<String>> {
-            // Gradle's cache layout is <group>/<module>/<version>/<hash>/<file>,
-            // and the POM sits in a sibling hash directory of the same version.
+
             val versionDir = artifact.file.parentFile?.parentFile ?: return Pair(emptyList(), emptyList())
             val pom = versionDir.walkTopDown()
                 .maxDepth(2)

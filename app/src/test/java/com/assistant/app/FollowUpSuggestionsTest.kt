@@ -10,9 +10,6 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/**
- * Unit tests verifying follow-up question suitability filtering, parsing, and generation.
- */
 class FollowUpSuggestionsTest {
 
     @Test

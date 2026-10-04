@@ -164,7 +164,6 @@ internal fun SettingsRow(
     }
 }
 
-/** A row that opens another settings page; mirrors [SettingsRow]'s look. */
 @Composable
 internal fun SettingsNavRow(
     label: String,

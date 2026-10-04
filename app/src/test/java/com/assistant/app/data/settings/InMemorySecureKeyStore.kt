@@ -1,10 +1,5 @@
 package com.assistant.app.data.settings
 
-/**
- * Test double for [SecureKeyStore]: keeps keys in memory. Used because
- * [EncryptedSecureKeyStore] needs the AndroidKeyStore, which does not exist
- * under Robolectric.
- */
 class InMemorySecureKeyStore : SecureKeyStore {
 
     private val keys = HashMap<Long, String?>()
@@ -23,7 +18,6 @@ class InMemorySecureKeyStore : SecureKeyStore {
         legacyKey = null
     }
 
-    /** Seeds the legacy single-provider key, for migration tests. */
     fun setLegacyApiKey(value: String?) {
         legacyKey = value
     }

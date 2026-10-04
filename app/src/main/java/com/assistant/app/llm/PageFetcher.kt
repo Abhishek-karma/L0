@@ -118,11 +118,6 @@ class HttpPageFetcher(
             address.isAnyLocalAddress ||
             address.isMulticastAddress
 
-    /**
-     * Search results are attacker-influenceable, so a result pointing at
-     * loopback, link-local, or a private range must not be fetched: that would
-     * let a page reach services on the user's own network or device.
-     */
     internal fun isPrivateHost(host: String): Boolean {
         val h = host.trim('[', ']').lowercase()
         if (h == "localhost" || h.endsWith(".localhost") || h.endsWith(".local") || h.endsWith(".internal")) {
@@ -145,9 +140,8 @@ class HttpPageFetcher(
     private fun isOctet(value: Int): Boolean = value in 0..255
 
     companion object {
-        const val MAX_PAGE_BYTES = 512 * 1024 // 512 KB
+        const val MAX_PAGE_BYTES = 512 * 1024
         const val MAX_REDIRECTS = 3
         const val USER_AGENT = "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36"
     }
 }
-

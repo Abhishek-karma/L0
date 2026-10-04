@@ -10,24 +10,16 @@ import com.assistant.app.voice.VoiceOption
 import com.assistant.app.voice.VoiceOutput
 import kotlinx.coroutines.flow.MutableStateFlow
 
-/**
- * UI-test wiring: a chat ViewModel factory over a scripted fake provider, so
- * Robolectric compose tests drive the real screen against deterministic
- * streams. (The app's production wiring lives in [AppContainer].)
- *
- * [initialChatLlm] overrides the resolved generation wiring — e.g.
- * [ChatLlmState.NeedsSetup] for the not-configured state.
- */
 class ScriptedChatFixture(
     script: List<ScriptedEvent>,
     initialChatLlm: ChatLlmState? = null,
-    /** Makes the top-bar speaker toggle render, as on a device with TTS. */
+
     ttsAvailable: Boolean = false,
-    /** Initial state of the persisted voice-output preference. */
+
     voiceOutputEnabled: Boolean = false,
-    /** Follow-up chips to surface under the last answer. */
+
     followUps: List<String> = emptyList(),
-    /** Drives the repository's web-search hook; null means search is unconfigured. */
+
     webSearch: (suspend (String) -> com.assistant.app.llm.model.SearchOutcome?)? = null,
 ) {
     val provider: FakeLlmProvider = FakeLlmProvider(script)
@@ -54,7 +46,6 @@ class ScriptedChatFixture(
         )
 }
 
-/** A TTS engine that reports available and completes speech immediately. */
 private class ScriptedVoiceOutput : VoiceOutput.Engine {
     override fun isAvailable(): Boolean = true
     override fun voices(onReady: (List<VoiceOption>) -> Unit) = onReady(emptyList())
@@ -62,7 +53,6 @@ private class ScriptedVoiceOutput : VoiceOutput.Engine {
     override fun stop() = Unit
 }
 
-/** Stands in for a device with no TTS engine. */
 private class UnavailableVoiceOutput : VoiceOutput.Engine {
     override fun isAvailable(): Boolean = false
     override fun voices(onReady: (List<VoiceOption>) -> Unit) = onReady(emptyList())

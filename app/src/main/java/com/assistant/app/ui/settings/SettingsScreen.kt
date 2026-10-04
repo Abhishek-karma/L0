@@ -82,9 +82,6 @@ internal enum class SettingsPage(val titleRes: Int, val icon: Int, val group: Se
     About(R.string.settings_section_about, AppIcons.Info, SettingsGroup.About),
 }
 
-/**
- * Inlet Settings: Clear, calm configuration for providers, voice, and experience.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(

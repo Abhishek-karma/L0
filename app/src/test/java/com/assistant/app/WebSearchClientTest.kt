@@ -57,7 +57,6 @@ class WebSearchClientTest {
         maxPagesToFetch = maxPagesToFetch,
     )
 
-    /** One DuckDuckGo-style result entry: title, target url, snippet. */
     private fun ddgHtml(vararg results: Triple<String, String, String>): String =
         results.joinToString(prefix = "<html><body>", postfix = "</body></html>") { (title, url, snippet) ->
             """

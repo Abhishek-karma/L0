@@ -38,11 +38,6 @@ import org.robolectric.annotation.Config
 import java.io.File
 import java.util.concurrent.Executor
 
-/**
- * Persistence behavior of [ChatRepository] through [ConversationStore]:
- * what lands in Room when messages are sent, streamed, stopped, edited, and
- * restored into a fresh repository (process-death path).
- */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
@@ -56,19 +51,8 @@ class ChatPersistenceTest {
 
     private var database: ChatDatabase? = null
 
-    /**
-     * Runs Room's query and transaction work inline on the calling thread
-     * (Robolectric is single-threaded), so suspend DAO calls complete
-     * synchronously and no real threads race the assertions or outlive the
-     * closed database.
-     */
     private val directExecutor = Executor { it.run() }
 
-    /**
-     * Same wiring as [ChatViewModelTest], plus the real store and a virtual
-     * clock tied to the test scheduler, so the 300 ms persistence throttle is
-     * exercised deterministically without real sleeps.
-     */
     private fun runChatTest(
         script: List<ScriptedEvent>,
         attachmentsDir: File? = null,

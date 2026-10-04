@@ -5,14 +5,6 @@ import com.assistant.app.llm.model.ChatChunk
 import com.assistant.app.llm.model.ChatRequest
 import com.assistant.app.llm.model.Role
 
-/**
- * Asks the provider that produced the answer for follow-up questions.
- * Best-effort: the caller treats any failure as "no suggestions".
- *
- * This is a second billable request after every answer, so it is kept cheap:
- * a short timeout, a small cap, and no attempt at all for answers too short to
- * prompt a useful follow-up.
- */
 object FollowUpSuggestions {
 
     const val TIMEOUT_MS = 6_000L
@@ -83,15 +75,6 @@ object FollowUpSuggestions {
         "against my safety guidelines",
     )
 
-
-
-    /**
-     * Determines whether an answer is substantive enough to suggest follow-up questions.
-     * - Disqualifies empty or blank answers (or those with no letters/digits)
-     * - Disqualifies trivial conversational acknowledgements
-     * - Disqualifies error/failure messages and natural-language refusals
-     * - Allows concise, legitimate factual/informative answers without an arbitrary length cliff
-     */
     fun isWorthSuggesting(answer: String): Boolean {
         val trimmed = answer.trim()
         if (trimmed.isEmpty() || trimmed.none { it.isLetterOrDigit() }) return false
@@ -147,18 +130,6 @@ object FollowUpSuggestions {
         return parse(text.toString())
     }
 
-    /**
-     * Parses and normalizes LLM-generated follow-up questions.
-     * Handles:
-     * - Numbered lines (1. Question?, 1) Question?, 1 - Question?)
-     * - Bulleted lines (- Question?, * Question?, • Question?)
-     * - Wrapping quotes, markdown bold/italics
-     * - Code fences and markdown headings
-     * - Preamble meta lines (e.g. "Here are some suggestions:")
-     * - Trailing meta text (e.g. "Hope this helps!")
-     * - Case-insensitive deduplication
-     * - Length validation and cap at [MAX_ITEMS]
-     */
     internal fun parse(raw: String): List<String> {
         val lines = raw.lines()
         val result = mutableListOf<String>()

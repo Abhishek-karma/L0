@@ -20,12 +20,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/**
- * Behavior contract for [ProviderStore]: CRUD, saved models per provider with
- * one active, the single-active-provider rule with fallback on delete, shared
- * per-provider keys, validation, and the one-time seeding of the pre-1.2
- * configuration.
- */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class ProviderStoreTest {
@@ -121,7 +115,7 @@ class ProviderStoreTest {
         store.deleteModel(id, first.id)
 
         assertEquals("second", store.activeModel(id)?.model)
-        // The provider and its key survive a model deletion.
+
         assertEquals("sk-1", store.apiKey(id))
     }
 
@@ -218,7 +212,6 @@ class ProviderStoreTest {
         )
         assertNull(store.validate(0, validDraft, oneModel, "sk-new"))
 
-        // Existing provider with a stored key: blank entry is fine.
         val id = addProvider(key = "sk-stored")
         assertNull(store.validate(id, validDraft, oneModel, null))
         store.deleteProvider(id)
@@ -231,7 +224,7 @@ class ProviderStoreTest {
 
     @Test
     fun validateEnforcesCleartextEndpointRestrictions() = runTest {
-        // Public remote HTTP is rejected to prevent cleartext exposure
+
         assertEquals(
             ProviderStore.ERROR_CLEARTEXT_NOT_PERMITTED,
             store.validate(0, validDraft.copy(baseUrl = "http://api.openai.com/v1"), oneModel, "sk"),
@@ -241,7 +234,6 @@ class ProviderStoreTest {
             store.validate(0, validDraft.copy(baseUrl = "http://evil.com/v1"), oneModel, "sk"),
         )
 
-        // Local and private network domains are allowed for self-hosted LLMs
         assertNull(store.validate(0, validDraft.copy(baseUrl = "http://localhost:11434/v1"), oneModel, "sk"))
         assertNull(store.validate(0, validDraft.copy(baseUrl = "http://127.0.0.1:11434/v1"), oneModel, "sk"))
         assertNull(store.validate(0, validDraft.copy(baseUrl = "http://10.0.2.2:11434/v1"), oneModel, "sk"))
@@ -250,7 +242,6 @@ class ProviderStoreTest {
         assertNull(store.validate(0, validDraft.copy(baseUrl = "http://desktop.home:8080/v1"), oneModel, "sk"))
         assertNull(store.validate(0, validDraft.copy(baseUrl = "http://cluster.internal:8000/v1"), oneModel, "sk"))
 
-        // Standard HTTPS is allowed everywhere
         assertNull(store.validate(0, validDraft.copy(baseUrl = "https://api.openai.com/v1"), oneModel, "sk"))
     }
 
@@ -267,14 +258,13 @@ class ProviderStoreTest {
         assertEquals("Legacy", seeded.name)
         assertEquals("https://legacy.example.com/v1", seeded.baseUrl)
         assertTrue(seeded.isActive)
-        // The legacy model became the provider's first, active saved model.
+
         val model = store.activeModel(seeded.id)
         assertEquals("legacy-model", model?.model)
         assertEquals("sk-legacy", store.apiKey(seeded.id))
         assertNull(keyStore.legacyApiKey())
         assertNull(preferences.legacyProviderConfig())
 
-        // Idempotent: a second pass (and leftover legacy fields) changes nothing.
         preferences.installLegacyProviderConfig("Again", "https://x.com/v1", "m")
         store.ensureSeeded()
         assertEquals(1, store.providers().firstBounded().size)

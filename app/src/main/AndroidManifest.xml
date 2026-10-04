@@ -2,15 +2,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Provider requests go to user-configured OpenAI-compatible endpoints. -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- Voice input (mic tap only; no background listening). -->
+
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <!-- App update notifications when a new release is published. -->
+
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- The voice-output availability probe checks for TTS engines (Android 11
-         package visibility: without this the probe sees no engines). -->
     <queries>
         <intent>
             <action android:name="android.intent.action.CHECK_TTS_DATA" />
@@ -39,15 +36,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <!-- Required by Robolectric unit tests, which launch ComponentActivity
-             directly; unexported so it is unreachable from other apps. -->
+
         <activity
             android:name="androidx.activity.ComponentActivity"
             android:exported="false"
             tools:replace="android:exported" />
 
-        <!-- Shares camera captures with the camera app for attachment photos
-             not exported, granted per request only. -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

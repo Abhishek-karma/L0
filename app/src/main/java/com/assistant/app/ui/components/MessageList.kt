@@ -80,9 +80,6 @@ private const val WAITING_DELAY_MILLIS = 350L
 internal fun isWebUrl(url: String): Boolean =
     url.startsWith("https://", ignoreCase = true) || url.startsWith("http://", ignoreCase = true)
 
-/**
- * Inlet Message Transcript: Content-first conversation stream optimized for reading comfort.
- */
 @Composable
 fun MessageList(
     messages: List<UiMessage>,
@@ -94,7 +91,7 @@ fun MessageList(
     modifier: Modifier = Modifier,
     showReasoning: Boolean = true,
     onSpeakMessage: ((String) -> Unit)? = null,
-    /** Top content padding; lets the first message clear a transparent top bar. */
+
     topPadding: Dp = AppSpacing.lg,
 ) {
     LazyColumn(
@@ -236,7 +233,7 @@ private fun MessageItem(
                     }
                 }
             } else {
-                // Assistant Message (No giant card container, prioritization of reading)
+
                 Column(horizontalAlignment = Alignment.Start) {
                     if (showReasoning && message.reasoning.isNotBlank()) {
                         ReasoningSection(
@@ -261,13 +258,10 @@ private fun MessageItem(
                         )
                     }
 
-                    // Citations stay out of the way while the answer is still
-                    // being prepared or streams, and appear once it completes.
                     if (!streaming && !searching && message.sources.isNotEmpty()) {
                         SearchCitationsList(sources = message.sources)
                     }
 
-                    // Message action bar & version switcher
                     if (!streaming && message.content.isNotBlank()) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -382,7 +376,6 @@ private fun MessageItem(
     }
 }
 
-/** Error message banner with retry action */
 @Composable
 private fun ErrorMessageBanner(
     message: String,
@@ -432,7 +425,6 @@ private fun ErrorMessageBanner(
     }
 }
 
-/** Ambient rotating orb shown while waiting for response tokens or web search */
 @Composable
 private fun WaitingIndicator(label: String, modifier: Modifier = Modifier) {
     var visible by remember { mutableStateOf(false) }
@@ -445,7 +437,6 @@ private fun WaitingIndicator(label: String, modifier: Modifier = Modifier) {
     ThinkingOrbWithLabel(label = label, modifier = modifier.padding(vertical = 6.dp))
 }
 
-/** Orb and status word shown together while waiting for response tokens */
 @Composable
 private fun ThinkingOrbWithLabel(label: String, modifier: Modifier = Modifier) {
     Row(
@@ -462,7 +453,6 @@ private fun ThinkingOrbWithLabel(label: String, modifier: Modifier = Modifier) {
     }
 }
 
-/** Reasoning section with calm disclosure and sidebar thinking bar */
 @Composable
 private fun ReasoningSection(
     reasoning: String,
@@ -485,7 +475,7 @@ private fun ReasoningSection(
         modifier = modifier.fillMaxWidth(),
     ) {
         Row(modifier = Modifier.height(IntrinsicSize.Min)) {
-            // Elegant vertical primary bar indicating ongoing thought / reasoning
+
             Box(
                 modifier = Modifier
                     .width(3.dp)
@@ -532,7 +522,6 @@ private fun ReasoningSection(
     }
 }
 
-/** One compact, horizontally scrollable row of source domain chips. */
 @Composable
 private fun SearchCitationsList(sources: List<SearchResult>) {
     val uriHandler = LocalUriHandler.current
@@ -572,7 +561,6 @@ private fun SearchCitationsList(sources: List<SearchResult>) {
     }
 }
 
-/** The host of [url] without its `www.`, or the raw url when unparseable. */
 private fun domainOf(url: String): String =
     try {
         Uri.parse(url).host?.removePrefix("www.") ?: url

@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!--
-        Android 12+ draws its own splash from these attributes and applies a
-        circular mask to the icon. Uses identical 108dp canvas and 1.8x scale
-        as the adaptive launcher icon foreground.
-    -->
+
     <style name="Theme.InletChat.Splash" parent="Theme.InletChat">
         <item name="android:windowBackground">@color/splash_background</item>
         <item name="android:windowSplashScreenBackground">@color/splash_background</item>

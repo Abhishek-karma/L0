@@ -40,10 +40,6 @@ import kotlinx.coroutines.withTimeout
 import java.io.File
 import java.util.UUID
 
-/**
- * High-level orchestrator for chat operations: session state, draft management,
- * generation streaming, persistence, web search, answer versions, and attachments.
- */
 class ChatRepository(
     private val chatLlm: StateFlow<ChatLlmState>,
     private val generationDispatcher: CoroutineDispatcher = Dispatchers.IO,
@@ -65,10 +61,8 @@ class ChatRepository(
     private val versionStore = AnswerVersionStore(store, clock)
     private val generationController = GenerationController(generationDispatcher, clock)
 
-    /** The failed generation's message id while it is still shown with an error. */
     private var failedAssistantId: String? = null
 
-    /** In-flight follow-up suggestions coroutine job. */
     private var followUpJob: Job? = null
 
     private fun cancelFollowUp() {
@@ -76,25 +70,16 @@ class ChatRepository(
         followUpJob = null
     }
 
-    /** True while a send is waiting on web search, before generation starts. */
     private var searching = false
 
-    /** Conversation snapshots for the no-persistence (test) mode. */
     private val conversationSnapshots = LinkedHashMap<String, List<UiMessage>>()
 
-    /** Saved conversations for the history screen, newest activity first. */
     val conversations: Flow<List<ConversationEntity>> = store?.conversations() ?: emptyFlow()
 
     fun setDraft(text: String) {
         _uiState.update { it.copy(draft = text) }
     }
 
-    /**
-     * Applies the Think capability of the newly active model: restores the
-     * persisted selection for that provider+model (clamped to what the model
-     * supports) or falls back to Auto. Called when the active provider or
-     * model changes; it never touches a request already in flight.
-     */
     suspend fun onThinkModelChanged(providerId: Long, modelId: Long, capability: ThinkCapability) {
         val restored = loadThinkSelection(providerId, modelId)
             ?.let { capability.normalize(it) }
@@ -102,7 +87,6 @@ class ChatRepository(
         _uiState.update { it.copy(thinkCapability = capability, thinkConfig = restored) }
     }
 
-    /** Updates the Think selection and persists it for the active provider+model. */
     suspend fun setThinkConfig(config: ReasoningConfig) {
         val capability = _uiState.value.thinkCapability
         if (!capability.isReasoningSupported()) return
@@ -249,7 +233,7 @@ class ChatRepository(
             sendPrepared(text, content, job)
         } catch (e: CancellationException) {
             _uiState.update { state ->
-                if (state.status is ChatStatus.Generating) {
+                if (state.status is ChatStatus.Generating || state.status is ChatStatus.Searching) {
                     state.copy(status = ChatStatus.Idle)
                 } else {
                     state
@@ -276,8 +260,7 @@ class ChatRepository(
             attachments = attachments,
         )
         val assistantId = newId()
-        // Publish before searching. Web search is network-bound, and waiting
-        // for it here would leave the send button looking unresponsive.
+
         _uiState.update { state ->
             state.copy(
                 conversationId = conversationId,
@@ -300,8 +283,9 @@ class ChatRepository(
         }
         clearPendingAttachments()
 
-        val webResults = if (_uiState.value.searchEnabled && content.isNotEmpty()) {
+        val webResults: List<SearchResult> = if (_uiState.value.searchEnabled && content.isNotEmpty()) {
             searching = true
+            _uiState.update { it.copy(status = ChatStatus.Searching) }
             try {
                 runWebSearch(content)
             } finally {
@@ -353,13 +337,17 @@ class ChatRepository(
         }
         cancelFollowUp()
         val job = currentCoroutineContext().job
-        turnJob = job
         try {
             val question = state.messages.dropLast(1).lastOrNull { it.role == Role.USER }
-            // Search before touching the message: a cancelled search leaves the
-            // answer untouched, and only the new generation's results survive.
-            val webResults = if (state.searchEnabled && !question?.content.isNullOrEmpty()) {
-                searchForTurn(question?.content.orEmpty())
+
+            val webResults: List<SearchResult> = if (state.searchEnabled && !question?.content.isNullOrEmpty()) {
+                searching = true
+                _uiState.update { it.copy(status = ChatStatus.Searching) }
+                try {
+                    runWebSearch(question?.content.orEmpty())
+                } finally {
+                    searching = false
+                }
             } else {
                 emptyList()
             }
@@ -389,8 +377,15 @@ class ChatRepository(
                 }
             }
             startGeneration(llm, last.id, job)
-        } finally {
-            if (turnJob === job) turnJob = null
+        } catch (e: CancellationException) {
+            _uiState.update { s ->
+                if (s.status is ChatStatus.Searching || s.status is ChatStatus.Generating) {
+                    s.copy(status = ChatStatus.Idle)
+                } else {
+                    s
+                }
+            }
+            throw e
         }
     }
 
@@ -562,8 +557,7 @@ class ChatRepository(
     ) {
         val targetConversationId = _uiState.value.conversationId ?: return
         cancelFollowUp()
-        // Built before the session is claimed: an unreadable attachment fails
-        // the turn here instead of being dropped from the request silently.
+
         val request = try {
             requestFor(assistantId)
         } catch (e: AttachmentUnreadableException) {
@@ -582,8 +576,6 @@ class ChatRepository(
 
         _uiState.update { it.copy(status = ChatStatus.Generating) }
 
-        // Captured once here: changing the Think control while this response
-        // streams cannot alter the request already being built below.
         val reasoning = when {
             !llm.thinkCapability.isReasoningSupported() -> null
             _uiState.value.thinkConfig is ReasoningConfig.Auto -> null
@@ -771,7 +763,6 @@ class ChatRepository(
         failedAssistantId = if (kept) assistantId else null
     }
 
-    /** Fails the turn before streaming when an attachment copy can no longer be read. */
     private suspend fun failUnreadableAttachment(
         assistantId: String,
         targetConversationId: String,
@@ -793,7 +784,7 @@ class ChatRepository(
         withContext(generationDispatcher) {
             val messages = _uiState.value.messages
                 .takeWhile { it.id != assistantId }
-                .filterNot { it.id == failedAssistantId } // Exclude failed partial assistant responses from LLM context
+                .filterNot { it.id == failedAssistantId }
             val lastUserId = messages.lastOrNull { it.role == Role.USER }?.id
             var images: List<String> = emptyList()
             val mapped = messages.map { message ->
@@ -845,7 +836,6 @@ class ChatRepository(
         }
     }
 
-    /** Reads a stored text attachment; a missing or unreadable copy fails the turn. */
     private fun readTextFile(file: UiAttachment): String {
         val stored = File(file.path)
         if (!stored.exists()) throw AttachmentUnreadableException(file.displayName)
@@ -899,7 +889,6 @@ class ChatRepository(
         const val MAX_IMAGES_PER_MESSAGE = AttachmentManager.MAX_IMAGES_PER_MESSAGE
         const val MAX_TEXTS_PER_MESSAGE = AttachmentManager.MAX_TEXTS_PER_MESSAGE
 
-        /** Shown when a stored attachment copy can no longer be read into a request. */
         fun attachmentUnreadableMessage(displayName: String): String =
             "Could not read \"$displayName\". Attach the file again to send it."
 
@@ -907,5 +896,4 @@ class ChatRepository(
     }
 }
 
-/** Raised when a message's stored attachment copy cannot be read into a request. */
 private class AttachmentUnreadableException(val displayName: String) : Exception()

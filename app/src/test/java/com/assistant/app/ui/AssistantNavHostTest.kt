@@ -27,11 +27,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/**
- * Robolectric Compose test for the app navigation: chat is the start
- * destination, history/settings are reachable from the navigation drawer,
- * and system back returns to chat.
- */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class AssistantNavHostTest {
@@ -41,7 +36,6 @@ class AssistantNavHostTest {
 
     private val context = ApplicationProvider.getApplicationContext<android.content.Context>()
 
-    /** Settings wiring over in-memory storage and a scripted provider. */
     private val settingsDb = androidx.room.Room
         .inMemoryDatabaseBuilder(context, com.assistant.app.data.local.ChatDatabase::class.java)
         .allowMainThreadQueries()
@@ -61,10 +55,9 @@ class AssistantNavHostTest {
         settingsDb.close()
     }
 
-    /** Marks onboarding as already completed so a test reaches the chat. */
     private fun skipOnboarding() {
         runBlocking { settingsPreferences.setOnboardingDone(true) }
-        // waitUntil takes a non-suspend lambda, so the read has to be blocking.
+
         runBlocking { settingsPreferences.onboardingDone.firstBounded { it } }
     }
 
@@ -196,18 +189,12 @@ class AssistantNavHostTest {
         composeRule.onNodeWithText(composeRule.activity.getString(R.string.chat_empty_statement)).assertIsDisplayed()
     }
 
-    /**
-     * Exercises the same path as the system back gesture: the activity's
-     * back dispatcher, which the NavHost hooks into. (Espresso.pressBack
-     * is not on the Robolectric unit-test classpath.)
-     */
     private fun pressSystemBack() {
         composeRule.runOnUiThread {
             composeRule.activity.onBackPressedDispatcher.onBackPressed()
         }
     }
 
-    /** Opens the navigation drawer from the chat top bar. */
     private fun openDrawer() {
         composeRule.onAllNodesWithContentDescription(
             composeRule.activity.getString(R.string.cd_open_drawer),
@@ -219,4 +206,3 @@ class AssistantNavHostTest {
         }
     }
 }
-

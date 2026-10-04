@@ -102,7 +102,6 @@ class HistoryScreenTest {
         composeRule.onNodeWithText("Kotlin Coroutines").assertIsDisplayed()
         composeRule.onNodeWithText("Compose Animation").assertIsDisplayed()
 
-        // Filter by typing query
         composeRule.onNodeWithText(context.getString(R.string.search_hint))
             .performTextInput("Coroutines")
 

@@ -6,19 +6,13 @@ import com.assistant.app.llm.model.ThinkCapability
 import com.assistant.app.llm.model.UiAttachment
 import com.assistant.app.llm.model.UiMessage
 
-/**
- * Status of the active generation in the chat session.
- */
 sealed interface ChatStatus {
     data object Idle : ChatStatus
+    data object Searching : ChatStatus
     data object Generating : ChatStatus
     data class Error(val message: String) : ChatStatus
 }
 
-/**
- * Voice state layered cleanly on the text pipeline:
- * Idle -> Listening -> Processing -> Speaking -> Error.
- */
 enum class VoiceStatus {
     Idle,
     Listening,
@@ -31,9 +25,6 @@ enum class VoiceStatus {
     }
 }
 
-/**
- * Complete UI state observed by the chat screen.
- */
 data class ChatUiState(
     val conversationId: String? = null,
     val messages: List<UiMessage> = emptyList(),
@@ -41,37 +32,34 @@ data class ChatUiState(
     val draft: String = "",
     val needsSetup: Boolean = false,
     val voiceStatus: VoiceStatus = VoiceStatus.Idle,
-    /** One-shot "didn't catch that" hint above the composer. */
+
     val voiceHint: Boolean = false,
-    /** Files staged in the composer for the next message. */
+
     val pendingAttachments: List<UiAttachment> = emptyList(),
-    /** One-shot attachment ingest/limit error above the composer. */
+
     val attachmentError: String? = null,
-    /** Web search for the current conversation. */
+
     val searchEnabled: Boolean = false,
-    /** One-shot web-search notice above the composer. */
+
     val searchNotice: String? = null,
-    /** Whether attachments are currently being processed or ingested. */
+
     val isIngestingAttachments: Boolean = false,
-    /** Reasoning control the active model exposes; [ThinkCapability.Unsupported] hides the Think control. */
+
     val thinkCapability: ThinkCapability = ThinkCapability.Unsupported,
-    /** The selected reasoning configuration, captured when a generation starts. */
+
     val thinkConfig: ReasoningConfig = ReasoningConfig.Auto,
 )
 
-/**
- * Generation wiring resolved from the active provider and its active model.
- */
 sealed interface ChatLlmState {
     data object Loading : ChatLlmState
     data class Ready(
         val provider: LlmProvider,
         val model: String,
         val providerId: Long = 0,
-        /** Stable id of the active saved model; keys the Think selection. */
+
         val modelId: Long = 0,
         val name: String = "",
-        /** What reasoning control the active model profile declares. */
+
         val thinkCapability: ThinkCapability = ThinkCapability.Unsupported,
     ) : ChatLlmState
     data object NeedsSetup : ChatLlmState

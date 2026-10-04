@@ -26,7 +26,6 @@ import com.assistant.app.ui.components.AppIcons
 import com.assistant.app.ui.theme.AppShape
 import com.assistant.app.ui.theme.AppSpacing
 
-/** One saved model row: its model id and whether it is the active model. */
 @Composable
 internal fun ModelEditorRow(
     draft: ModelDraft,

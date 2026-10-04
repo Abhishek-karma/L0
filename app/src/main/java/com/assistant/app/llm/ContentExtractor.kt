@@ -38,7 +38,7 @@ class JsoupContentExtractor(
     }
 
     private fun cleanDocument(doc: Document) {
-        // Strip non-content and clutter elements
+
         val selectorsToRemove = listOf(
             "script", "style", "noscript", "svg", "form", "iframe", "canvas",
             "nav", "header", "footer", "aside",
@@ -69,7 +69,7 @@ class JsoupContentExtractor(
     }
 
     private fun findMainContentElement(doc: Document): Element {
-        // Look for common main semantic containers
+
         val candidates = listOf(
             "article",
             "main",

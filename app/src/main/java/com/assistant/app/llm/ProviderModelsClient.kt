@@ -9,21 +9,10 @@ import org.json.JSONObject
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 
-/**
- * Lists the models an OpenAI-compatible endpoint serves, via
- * `GET {baseUrl}/models`, so a self-hosted endpoint shows what it really has.
- *
- * Failures are returned, not thrown: a server without `/models` is common and
- * must not block manual entry.
- */
 class ProviderModelsClient(
     private val client: OkHttpClient = defaultClient(),
 ) {
-    /**
-     * The model ids the endpoint serves, or a failure the caller can present.
-     * An empty list means nothing usable came back; the caller falls back to
-     * typing.
-     */
+
     suspend fun listModels(baseUrl: String, apiKey: String): Result<List<String>> =
         withContext(Dispatchers.IO) {
             val trimmedBase = baseUrl.trim().trimEnd('/')
@@ -86,7 +75,6 @@ class ProviderModelsClient(
             }
         }
 
-    /** Pulls `models[].name` out of the Gemini list envelope. */
     private fun parseGeminiModelIds(body: String): List<String> {
         if (body.isBlank()) return emptyList()
         val array = try {
@@ -119,14 +107,12 @@ class ProviderModelsClient(
         return ids.distinct().sorted()
     }
 
-    /** Pulls `data[].id` out of the OpenAI-compatible list envelope. */
     private fun parseModelIds(body: String): List<String> {
         if (body.isBlank()) return emptyList()
         val array = try {
             JSONObject(body).optJSONArray("data")
         } catch (e: JSONException) {
-            // An HTML error page or proxy response is a reported failure, not
-            // an exception escaping to the caller.
+
             throw IOException("models response was not JSON", e)
         } ?: return emptyList()
         val ids = buildList {
@@ -135,8 +121,7 @@ class ProviderModelsClient(
                 if (id.isNotEmpty()) add(id)
             }
         }
-        // Servers do not guarantee an order; sorting keeps the list stable
-        // between openings.
+
         return ids.distinct().sorted()
     }
 

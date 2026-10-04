@@ -2,7 +2,6 @@
 <resources>
     <string name="app_name">L0</string>
 
-    <!-- Home greeting and empty state. -->
     <string name="greeting_morning">Good morning</string>
     <string name="greeting_afternoon">Good afternoon</string>
     <string name="greeting_evening">Good evening</string>
@@ -11,11 +10,9 @@
     <string name="chat_prompt_2">Help me draft an email</string>
     <string name="chat_prompt_3">Brainstorm weekend plans</string>
 
-    <!-- Shown instead of the conversation while no provider is configured. -->
     <string name="chat_setup_required">Set up a provider in Settings to start chatting.</string>
     <string name="chat_open_settings">Open Settings</string>
 
-    <!-- Composer -->
     <string name="composer_hint">Ask anything…</string>
     <string name="composer_web_search">Web search</string>
     <string name="composer_listening">Listening…</string>
@@ -23,7 +20,7 @@
     <string name="cd_send">Send</string>
     <string name="cd_stop">Stop</string>
     <string name="cd_use_microphone">Use microphone</string>
-    <!-- Attachment actions and staged chips. -->
+
     <string name="cd_attach_files">Attach files</string>
     <string name="attach_photos">Photo library</string>
     <string name="cd_attach_photos">Attach photos from the library</string>
@@ -36,23 +33,22 @@
     <string name="attach_camera_subtitle">Take a photo</string>
     <string name="attach_file_subtitle">Select a file</string>
     <string name="message_attachment_only">Sent an attachment</string>
-    <!-- Scroll-to-latest affordance while a response streams. -->
+
     <string name="cd_scroll_to_latest">Scroll to latest</string>
 
-    <!-- Conversation actions and banners -->
     <string name="error_retry">Retry</string>
     <string name="error_title">Something went wrong</string>
     <string name="edit_banner_label">Editing message</string>
     <string name="menu_copy">Copy</string>
     <string name="menu_regenerate">Regenerate</string>
     <string name="menu_edit_and_resend">Edit and resend</string>
-    <!-- Full-screen viewer for attached images. -->
+
     <string name="menu_save">Save</string>
     <string name="viewer_saved">Saved</string>
     <string name="viewer_save_failed">Couldn’t save</string>
     <string name="viewer_load_failed">Couldn’t load image</string>
     <string name="cd_close_viewer">Close viewer</string>
-    <!-- Answer version switcher on regenerated responses. -->
+
     <string name="cd_previous_answer">Previous answer</string>
     <string name="cd_next_answer">Next answer</string>
     <string name="cd_dismiss">Dismiss</string>
@@ -68,12 +64,12 @@
     <string name="menu_share">Share</string>
     <string name="menu_delete">Delete</string>
     <string name="cd_delete_conversation">Delete conversation</string>
-    <!-- History date groups. -->
+
     <string name="history_today">Today</string>
     <string name="history_yesterday">Yesterday</string>
     <string name="history_previous_7_days">Previous 7 days</string>
     <string name="history_older">Older</string>
-    <!-- Settings about section. -->
+
     <string name="settings_section_about">About</string>
     <string name="settings_version">Version</string>
     <string name="cd_share_conversation">Share conversation</string>
@@ -89,14 +85,14 @@
     <string name="settings_section_provider">Provider</string>
     <string name="settings_section_voice">Voice</string>
     <string name="settings_section_appearance">Appearance</string>
-    <!-- Shown before any provider has been added. -->
+
     <string name="settings_provider_none">No provider yet. Add one to start chatting.</string>
     <string name="settings_add_provider">Add provider</string>
     <string name="settings_quick_presets">Quick presets</string>
     <string name="settings_delete">Delete</string>
     <string name="settings_cancel">Cancel</string>
     <string name="cd_set_active">Set as active provider</string>
-    <!-- Provider switcher in the chat top bar. -->
+
     <string name="cd_switch_provider">Switch provider</string>
     <string name="settings_field_name">Name</string>
     <string name="settings_field_base_url">Base URL</string>
@@ -105,7 +101,7 @@
     <string name="settings_models_title">Models</string>
     <string name="settings_add_model">Add model</string>
     <string name="settings_remove_model">Remove model</string>
-    <!-- Placeholder shown in the API key field while a saved key exists. -->
+
     <string name="settings_api_key_saved_placeholder">••••••••</string>
     <string name="settings_show_key">Show</string>
     <string name="settings_hide_key">Hide</string>
@@ -139,17 +135,17 @@
     <string name="settings_speed_fast">Fast</string>
     <string name="voice_speaking_hint">Speaking — tap the mic to stop.</string>
     <string name="menu_speak">Speak</string>
-    <!-- Web search. -->
+
     <string name="cd_toggle_search">Toggle web search</string>
-    <!-- Reasoning display. -->
+
     <string name="settings_section_reasoning">Reasoning</string>
     <string name="settings_reasoning_visible">Show reasoning</string>
     <string name="settings_reasoning_description">Shows the model\u2019s real reasoning above its answer when the provider sends it.</string>
     <string name="reasoning_header">Reasoning</string>
     <string name="cd_toggle_reasoning">Show or hide reasoning</string>
     <string name="status_thinking">Thinking…</string>
+    <string name="status_searching_web">Searching the web…</string>
 
-    <!-- Think control (reasoning selection in the composer). -->
     <string name="think_label">Think</string>
     <string name="cd_toggle_think">Choose how much the model thinks</string>
     <string name="think_auto">Auto</string>
@@ -159,7 +155,6 @@
     <string name="think_high">High</string>
     <string name="think_budget_option">%1$d tokens</string>
 
-    <!-- Voice input hints (inline, above the composer). -->
     <string name="voice_no_match_hint">Didn\u2019t catch that — try again.</string>
     <string name="voice_mic_rationale">Microphone permission is needed for voice input. You can keep typing instead.</string>
     <string name="voice_listening_hint">Listening… Speak now or tap to cancel.</string>
@@ -193,7 +188,6 @@
     <string name="onboarding_cap_images">Attach images from camera or gallery</string>
     <string name="onboarding_cap_files">Attach text files</string>
 
-
     <string name="search_title">Search</string>
     <string name="search_hint">Search chats…</string>
     <string name="search_recent">Recent</string>
@@ -215,8 +209,6 @@
     <string name="model_selector_retry">Try again</string>
     <string name="model_selector_no_match">No matching model</string>
 
-
-    <!-- Top bar action content descriptions -->
     <string name="cd_new_chat">New chat</string>
     <string name="cd_back">Back</string>
 
@@ -224,14 +216,12 @@
     <string name="settings_configured">Configured</string>
     <string name="settings_not_available">Unavailable</string>
 
-    <!-- Settings groups -->
     <string name="settings_group_ai">AI</string>
     <string name="settings_group_chat">Chat</string>
     <string name="settings_group_data">Data &amp; privacy</string>
     <string name="settings_group_support">Support</string>
     <string name="settings_group_about">About</string>
 
-    <!-- Provider setup -->
     <string name="settings_provider_inactive">Tap to use</string>
     <string name="settings_provider_active">In use</string>
     <string name="settings_provider_no_model">No model set</string>
@@ -246,7 +236,6 @@
     <string name="settings_guide_close">Close</string>
     <string name="settings_guide_own_endpoint">This endpoint is not one of the presets. Get the key and the base URL from whoever operates this service.</string>
 
-    <!-- About -->
     <string name="settings_about_description">A private, bring-your-own-key AI chat client. Conversations stay in this app\'s storage on your device; answers come from the provider you configure.</string>
     <string name="settings_about_privacy">Privacy policy</string>
     <string name="settings_about_terms">Terms of service</string>
@@ -272,7 +261,6 @@
     <string name="update_notification_title">L0 %1$s available</string>
     <string name="update_notification_body">Version %1$s is available to download.</string>
 
-    <!-- Privacy policy -->
     <string name="settings_section_privacy">Privacy</string>
     <string name="privacy_intro">This page describes what this app actually does with your data, based on the code in this build.</string>
     <string name="privacy_local_title">Stored on this device</string>
@@ -288,7 +276,6 @@
     <string name="privacy_deletion_title">Deleting your data</string>
     <string name="privacy_deletion_body">Deleting a conversation in History removes its messages and its copied attachment files from the device. Deleting a provider removes its stored key. Uninstalling the app removes its private storage. Data already sent to a third-party provider or search service is outside this app\'s control — use that provider\'s own deletion tools.</string>
 
-    <!-- Terms of service -->
     <string name="settings_section_terms">Terms</string>
     <string name="terms_intro">These terms cover your use of L0. They describe the product as built and have not been reviewed by a lawyer.</string>
     <string name="terms_byok_title">You provide the API key</string>
@@ -312,7 +299,6 @@
     <string name="licenses_unavailable">License information is not available in this build.</string>
     <string name="licenses_count">%1$d libraries</string>
 
-    <!-- Help & support -->
     <string name="settings_section_help">Help</string>
     <string name="help_intro">Short answers for the things that usually go wrong. L0 has no account system, so everything below is something you configure yourself.</string>
     <string name="help_add_provider_title">Add a provider</string>

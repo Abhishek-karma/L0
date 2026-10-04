@@ -14,9 +14,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.isSpecified
 import com.assistant.app.ui.theme.AppCodeFontFamily
 
-/**
- * Robust and safe Markdown subset representing the parsed message.
- */
 sealed interface MessageBlock {
     data class Paragraph(val text: AnnotatedString) : MessageBlock
     data class Heading(val level: Int, val text: AnnotatedString) : MessageBlock
@@ -42,10 +39,6 @@ object MarkdownParser {
     private val MATH_SPAN_STYLE = SpanStyle(fontStyle = FontStyle.Italic, color = Color.Unspecified)
     private val URL_TRAILING_PUNCTUATION = charArrayOf('.', ',', ';', ':', '!', '?', ')', ']', '}')
 
-    /**
-     * Parse raw markdown string into structured MessageBlock list.
-     * Tightly optimized to avoid recursive overhead, exponential regex, or memory blowup.
-     */
     fun parse(
         text: String,
         codeBackground: Color = Color.Transparent,
@@ -56,12 +49,12 @@ object MarkdownParser {
         val len = text.length
 
         while (index < len) {
-            // Find next code block or math block fence
+
             val fenceCode = findLineAnchoredFence(text, index, CODE_FENCE)
             val fenceLatex = findLineAnchoredFence(text, index, LATEX_FENCE)
 
             if (fenceCode != null && (fenceLatex == null || fenceCode.first < fenceLatex.first)) {
-                // Handle fenced Code/Mermaid Block
+
                 val (fenceStart, indent) = fenceCode
                 processRegion(text.substring(index, fenceStart), blocks, codeBackground, linkColor)
 
@@ -87,7 +80,7 @@ object MarkdownParser {
                 val closingLineEnd = text.indexOf('\n', closing.first)
                 index = if (closingLineEnd == -1) len else closingLineEnd + 1
             } else if (fenceLatex != null) {
-                // Handle fenced LaTeX Block
+
                 val (fenceStart, indent) = fenceLatex
                 processRegion(text.substring(index, fenceStart), blocks, codeBackground, linkColor)
 
@@ -138,7 +131,7 @@ object MarkdownParser {
             val atLineStart = lineStart == 0 || text[lineStart - 1] == '\n'
             val indent = candidate - lineStart
             if (atLineStart && indent <= FENCE_MAX_INDENT) {
-                // Ensure it's not a larger run (e.g. double fence or more backticks)
+
                 val nextCharIdx = candidate + fenceLen
                 val isExact = nextCharIdx >= len || text[nextCharIdx] != fence[0]
                 if (isExact) {
@@ -326,9 +319,6 @@ object MarkdownParser {
         return cells
     }
 
-    /**
-     * Parse inline elements recursively: bold, italic, inline backtick, URL links, and inline LaTeX ($).
-     */
     fun richText(
         text: String,
         codeBackground: Color = Color.Transparent,
@@ -463,9 +453,6 @@ object MarkdownParser {
         return afterClose - at
     }
 
-    /**
-     * Safer inline LaTeX math parsing to avoid currency false positives.
-     */
     private fun AnnotatedString.Builder.appendInlineMath(
         text: String,
         at: Int,

@@ -10,9 +10,6 @@ data class SearchExecutionResult(
     val noticeMessage: String?
 )
 
-/**
- * Handles executing web search queries, error normalization, and user notice generation.
- */
 class SearchController(
     private val webSearch: (suspend (String) -> SearchOutcome?)? = null
 ) {

@@ -40,9 +40,6 @@ import com.assistant.app.ui.theme.AppShape
 import com.assistant.app.ui.theme.AppSpacing
 import java.util.Calendar
 
-/**
- * Empty home state shown before a conversation has started.
- */
 @Composable
 fun EmptyHome(
     onPromptSelected: (String) -> Unit,

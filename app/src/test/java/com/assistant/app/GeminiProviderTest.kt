@@ -146,11 +146,10 @@ class GeminiProviderTest {
         assertTrue(recorded.path!!.contains("models/gemini-2.5-flash:streamGenerateContent?alt=sse"))
 
         val body = JSONObject(recorded.body.readUtf8())
-        // Verify systemInstruction
+
         val sysParts = body.getJSONObject("systemInstruction").getJSONArray("parts")
         assertEquals("You are a concise assistant.", sysParts.getJSONObject(0).getString("text"))
 
-        // Verify contents
         val contents = body.getJSONArray("contents")
         assertEquals(3, contents.length())
         assertEquals("user", contents.getJSONObject(0).getString("role"))

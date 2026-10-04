@@ -15,11 +15,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/**
- * Behavior contract for application preferences (DataStore): appearance and
- * voice-output round-trips, and the legacy provider fields that exist only
- * until [com.assistant.app.data.ProviderStore.ensureSeeded] migrates them.
- */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class AppPreferencesTest {
@@ -80,12 +75,10 @@ class AppPreferencesTest {
         assertEquals(ReasoningConfig.Budget(4096), preferences.thinkSelection(1L, 10L))
         assertEquals(ReasoningConfig.Effort(ReasoningEffort.HIGH), preferences.thinkSelection(1L, 11L))
 
-        // The same model id under a different provider keeps separate Think state.
         preferences.setThinkSelection(2L, 10L, ReasoningConfig.Off)
         assertEquals(ReasoningConfig.Budget(4096), preferences.thinkSelection(1L, 10L))
         assertEquals(ReasoningConfig.Off, preferences.thinkSelection(2L, 10L))
 
-        // Models without a stored selection stay null.
         assertNull(preferences.thinkSelection(1L, 99L))
     }
 
@@ -96,7 +89,6 @@ class AppPreferencesTest {
         preferences.setVoiceId("com.google.android.tts:en-us-natural:en-US")
         assertEquals("com.google.android.tts:en-us-natural:en-US", preferences.voiceId.firstBounded())
 
-        // Clearing restores the engine default rather than storing an empty id.
         preferences.setVoiceId(null)
         assertNull(preferences.voiceId.firstBounded())
 

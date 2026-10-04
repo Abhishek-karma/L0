@@ -52,12 +52,6 @@ private const val HISTORY_ROUTE = "history"
 private const val SEARCH_ROUTE = "search"
 private const val SETTINGS_ROUTE = "settings"
 
-/**
- * App navigation: chat is the start destination, and history, search,
- * settings, and provider setup push on top of it. Onboarding shows once
- * before the chat. History opens a conversation by navigating back to the
- * chat route with a [CONVERSATION_ID_ARG] argument.
- */
 @Composable
 fun AssistantNavHost(
     chatViewModelFactory: ViewModelProvider.Factory,
@@ -70,14 +64,9 @@ fun AssistantNavHost(
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val chatViewModel: ChatViewModel = viewModel(factory = chatViewModelFactory)
 
-    // null until the persisted flag has actually been read. The gate must not
-    // resolve against a placeholder: with `initial = true` the first frame
-    // latched "already done", so a fresh install skipped onboarding forever.
     val onboardingDone by remember { appPreferences.onboardingDone }
         .collectAsState(initial = null)
 
-    // Dismissed locally so the screen leaves on tap, rather than waiting for
-    // the write to come back round.
     var finishedOnboarding by rememberSaveable { mutableStateOf(false) }
 
     if (onboardingDone == null) {
@@ -100,8 +89,6 @@ fun AssistantNavHost(
         return
     }
 
-    // Hoisted because the transition lambdas are not composable scopes, so they
-    // cannot call appTween themselves. Alpha and offset need separate types.
     val navFade = appTween<Float>(AppMotion.MEDIUM)
     val navFadeFast = appTween<Float>(AppMotion.FAST)
     val navSlide = appTween<IntOffset>(AppMotion.MEDIUM)
@@ -109,7 +96,7 @@ fun AssistantNavHost(
         navController = navController,
         startDestination = CHAT_ROUTE,
         modifier = modifier,
-        // Startup should be rock-solid and stationary; transitions only apply when entering from another route.
+
         enterTransition = {
             if (initialState.destination.route == null) {
                 EnterTransition.None

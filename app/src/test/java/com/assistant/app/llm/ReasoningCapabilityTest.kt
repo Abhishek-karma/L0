@@ -16,7 +16,6 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Capability detection from the selected model's id, and the selection model. */
 class ReasoningCapabilityTest {
 
     @Test

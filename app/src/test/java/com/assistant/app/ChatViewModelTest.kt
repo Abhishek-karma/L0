@@ -31,10 +31,6 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/**
- * Send/stop/failure semantics of [ChatViewModel] + [ChatRepository] against a
- * scripted provider.
- */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatViewModelTest {
 
@@ -43,12 +39,6 @@ class ChatViewModelTest {
         Dispatchers.resetMain()
     }
 
-    /**
-     * Runs [block] with a ViewModel wired to an in-memory repository and a
-     * scripted provider, all on the shared virtual-time scheduler. `Main` is
-     * replaced with an unconfined test dispatcher so `viewModelScope` launches
-     * eagerly and generation interleaves deterministically with the test body.
-     */
     private fun runChatTest(
         script: List<ScriptedEvent>,
         webSearch: (suspend (String) -> com.assistant.app.llm.model.SearchOutcome?)? = null,
@@ -68,7 +58,6 @@ class ChatViewModelTest {
         block(ChatViewModel(repository, chatLlm), provider, repository)
     }
 
-    /** Script that streams "Hel", "lo" then Done, with a pause before each event. */
     private val helloScript = listOf(
         ScriptedEvent.Delay(100),
         ScriptedEvent.Emit("Hel"),
@@ -151,8 +140,6 @@ class ChatViewModelTest {
 
         viewModel.stop()
 
-        // The flush is bounded, so the scheduler must reach idle on its own
-        // even though the stream would otherwise keep delaying forever.
         advanceTimeBy(GenerationController.CANCEL_FLUSH_TIMEOUT_MS * 3)
         runCurrent()
         advanceUntilIdle()
@@ -292,11 +279,9 @@ class ChatViewModelTest {
         assertEquals(assistantId, viewModel.uiState.value.messages[1].id)
     }
 
-
     private companion object {
         const val LONG_ANSWER = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
     }
-
 
     @Test
     fun `follow-up suggestions attach to a substantial answer`() = runChatTest(
@@ -817,7 +802,6 @@ class ChatSearchTest {
         viewModel.send("Kotlin coroutines")
         runCurrent()
 
-        // The search is still in flight, but the turn is already on screen.
         val shown = viewModel.uiState.value.messages
         assertEquals("Kotlin coroutines", shown[0].content)
         assertEquals(Role.ASSISTANT, shown[1].role)
@@ -1008,7 +992,7 @@ class ChatSearchTest {
             viewModel.regenerate()
             runCurrent()
             assertEquals(ChatStatus.Searching, viewModel.uiState.value.status)
-            // The previous answer stays readable while the new search runs.
+
             assertEquals("Hello", viewModel.uiState.value.messages[1].content)
 
             viewModel.stop()

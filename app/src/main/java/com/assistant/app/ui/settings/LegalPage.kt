@@ -27,10 +27,6 @@ internal val TERMS_SECTIONS = listOf(
     LegalSection(R.string.terms_conduct_title, R.string.terms_conduct_body),
 )
 
-/**
- * One heading, one block of text per [LegalSection]. Sections are plain
- * scrolling text, not cards, so a long policy stays readable.
- */
 @Composable
 internal fun LegalPage(introRes: Int, sections: List<LegalSection>) {
     Text(

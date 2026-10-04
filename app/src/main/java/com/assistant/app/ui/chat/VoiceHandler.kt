@@ -10,9 +10,6 @@ import com.assistant.app.voice.VoiceInputEvent
 import com.assistant.app.voice.VoiceOutput
 import com.assistant.app.voice.speakableText
 
-/**
- * Handles voice input (microphone transcription) and voice output (TTS playback).
- */
 class VoiceHandler(
     private val repository: ChatRepository,
     private val voiceInput: VoiceInput = VoiceInput.unavailable(),

@@ -13,11 +13,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/**
- * Behavior contract for [AttachmentIngester] storage: images decode into a
- * stored JPEG copy, text files store capped, and oversized or non-image
- * sources fail with user-facing messages.
- */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class AttachmentIngesterTest {
@@ -25,7 +20,6 @@ class AttachmentIngesterTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
     private val ingester = AttachmentIngester(context, Dispatchers.Unconfined)
 
-    /** A valid 1x1 JPEG, so decoding exercises the real image path. */
     private val jpeg1x1: ByteArray = java.io.ByteArrayOutputStream().also { out ->
         android.graphics.Bitmap.createBitmap(4, 4, android.graphics.Bitmap.Config.ARGB_8888)
             .compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, out)
@@ -87,13 +81,11 @@ class AttachmentIngesterTest {
         assertEquals(4, staged5.size)
         org.junit.Assert.assertNotNull(err5)
 
-        // Verify removing an attachment deletes its file on disk
         assertTrue(java.io.File(img1.path).exists())
         val afterRemove = manager.removePendingAttachment(staged4, img1.id)
         assertEquals(3, afterRemove.size)
         org.junit.Assert.assertFalse(java.io.File(img1.path).exists())
 
-        // Clean up remaining staged files
         manager.discardStagedAttachments(afterRemove)
         org.junit.Assert.assertFalse(java.io.File(img2.path).exists())
         org.junit.Assert.assertFalse(java.io.File(img3.path).exists())
@@ -117,4 +109,3 @@ class AttachmentIngesterTest {
         java.io.File(img1.path).delete()
     }
 }
-

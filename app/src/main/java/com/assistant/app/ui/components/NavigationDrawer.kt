@@ -46,10 +46,8 @@ import com.assistant.app.ui.theme.AppCodeFontFamily
 import com.assistant.app.ui.theme.AppShape
 import com.assistant.app.ui.theme.AppSpacing
 
-/** Narrower than the Material default (360 dp) so the drawer stays compact. */
 private val DRAWER_WIDTH = 300.dp
 
-/** One row of the drawer's model switcher. */
 data class ChatModelOption(val id: Long, val model: String, val providerName: String)
 
 private enum class DrawerDestination(val icon: Int, val labelRes: Int) {
@@ -58,10 +56,6 @@ private enum class DrawerDestination(val icon: Int, val labelRes: Int) {
     Settings(AppIcons.Settings, R.string.drawer_settings),
 }
 
-/**
- * Inlet Chat App Drawer: Brand presence, the active model with its switcher,
- * and primary destinations.
- */
 @Composable
 fun AppDrawer(
     drawerState: DrawerState,
@@ -90,7 +84,7 @@ fun AppDrawer(
                         .fillMaxHeight()
                         .padding(horizontal = AppSpacing.lg, vertical = AppSpacing.xl),
                 ) {
-                    // Inlet Brand Header
+
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.padding(bottom = AppSpacing.xs),

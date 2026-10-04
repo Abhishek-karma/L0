@@ -5,10 +5,6 @@ import com.assistant.app.llm.SseParser
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-/**
- * Behavior contract for the incremental SSE parser: arbitrary chunk
- * boundaries, line endings, comments, and event/data field handling.
- */
 class SseParserTest {
 
     @Test
@@ -45,8 +41,6 @@ class SseParserTest {
         val parser = SseParser()
         assertEquals(emptyList<SseEvent>(), parser.parseSse("data: a\r"))
 
-        // The LF completing the CRLF arrives in the next chunk: the line is
-        // complete but the frame is not terminated yet.
         assertEquals(emptyList<SseEvent>(), parser.parseSse("\n"))
 
         assertEquals(listOf(SseEvent(null, "a")), parser.parseSse("\n"))

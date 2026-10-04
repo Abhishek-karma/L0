@@ -37,9 +37,6 @@ import com.assistant.app.ui.theme.AppShape
 import com.assistant.app.ui.theme.AppSpacing
 import com.assistant.app.ui.theme.rememberHaptics
 
-/**
- * An action in an [InletActionSheet].
- */
 data class InletAction(
     val label: String,
     val icon: Int? = null,
@@ -50,9 +47,6 @@ data class InletAction(
     val onClickLabel: String? = null,
 )
 
-/**
- * Inlet Chat Action Sheet: Ergonomic thumb-reachable bottom menu.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InletActionSheet(

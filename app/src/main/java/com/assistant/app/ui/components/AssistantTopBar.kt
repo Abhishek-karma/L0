@@ -25,11 +25,6 @@ import androidx.compose.ui.unit.dp
 import com.assistant.app.R
 import com.assistant.app.ui.theme.AppShape
 
-/**
- * Chat top bar: transparent at rest so the conversation stays the visual
- * priority; when content scrolls beneath it, a scrim and hairline fade in
- * to keep the title and icons readable.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AssistantTopBar(
@@ -107,7 +102,6 @@ fun AssistantTopBar(
     )
 }
 
-/** Icon on a quiet pill container, matching the composer's action pills. */
 @Composable
 private fun TopBarChip(
     contentDescription: String,

@@ -46,10 +46,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 
-/**
- * Holds the app's lazily-created singletons and constructs dependencies.
- * No DI framework: dependencies are built once and passed to where they are needed.
- */
 class AppContainer(context: Context) {
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)

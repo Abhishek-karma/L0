@@ -37,9 +37,6 @@ import com.assistant.app.R
 import com.assistant.app.ui.theme.AppShape
 import com.assistant.app.ui.theme.AppSpacing
 
-/**
- * Inlet Attachment Sheet: Media, documents, and web search toggle.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AttachmentSheet(

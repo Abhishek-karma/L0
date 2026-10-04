@@ -17,10 +17,6 @@ import org.robolectric.annotation.Config
 import java.io.File
 import java.util.Base64
 
-/**
- * Tests for the full-screen media viewers in [MediaViewer]: the diagram PNG
- * export script and the viewer affordances for diagrams and attached images.
- */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class MediaViewerTest {

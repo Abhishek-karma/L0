@@ -111,12 +111,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import java.io.File
 
-/** Material 3 top app bar height; the transparent bar's content area. */
 private val TOP_BAR_HEIGHT = 64.dp
 
-/**
- * Primary chat canvas composing model top bar, message list, empty states, and composer.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen(
@@ -248,8 +244,7 @@ fun ChatScreen(
     val error = state.status as? ChatStatus.Error
     val isGenerating = state.status is ChatStatus.Generating
     val isSearching = state.status is ChatStatus.Searching
-    // Any phase of an in-flight turn: the composer offers Stop and message
-    // actions stay disabled until the turn settles.
+
     val isBusy = isGenerating || isSearching
     val voiceActive = state.voiceStatus == VoiceStatus.Listening ||
         state.voiceStatus == VoiceStatus.Processing ||
@@ -268,17 +263,13 @@ fun ChatScreen(
             else -> state.searchNotice
         }
     }
-    // A regenerating turn keeps its previous answer on screen, so the
-    // transcript cannot show the searching state; the hint carries it instead.
+
     val showSearchingHint = isSearching && state.messages.lastOrNull()?.content?.isNotBlank() == true
 
     val listState = rememberLazyListState()
     val listScope = rememberCoroutineScope()
     val dragged by listState.interactionSource.collectIsDraggedAsState()
 
-    // The user takes over the moment they drag the conversation, however small
-    // the movement; following resumes only once they are back at the newest
-    // content. The tolerance is for bounce, not for reading back.
     var followLatest by remember { mutableStateOf(true) }
     LaunchedEffect(dragged) {
         if (dragged) followLatest = false
@@ -292,9 +283,7 @@ fun ChatScreen(
     val lastMessage = state.messages.lastOrNull()
     LaunchedEffect(lastMessage?.id, lastMessage?.content?.length) {
         if (!followLatest) return@LaunchedEffect
-        // Streaming tracks the newest tokens with an instant jump: animating
-        // every token would jitter, and the growing message already keeps the
-        // viewport on the latest content.
+
         if (isBusy) {
             listState.scrollToItem(0)
         } else {
@@ -302,9 +291,6 @@ fun ChatScreen(
         }
     }
 
-    // The keyboard steps aside for the conversation: on send, when the reply
-    // lands, and whenever the user scrolls or taps the messages. It is left
-    // alone if they are already typing the next message.
     LaunchedEffect(listState) {
         snapshotFlow { listState.isScrollInProgress }
             .collect { scrolling -> if (scrolling) keyboard?.hide() }
@@ -429,8 +415,7 @@ fun ChatScreen(
                         viewModel.send(state.draft)
                     }
                     editingMessageId = null
-                    // Scroll first, then claim following: setting the flag up front
-                    // can be undone by the scroll observer before the move lands.
+
                     listScope.launch {
                         listState.scrollToItem(0)
                         followLatest = true
@@ -473,8 +458,7 @@ fun ChatScreen(
             )
         },
     ) { innerPadding ->
-        // The status bar stays solid (content never draws beneath it); only
-        // the 64dp bar area is transparent, with messages scrolling beneath it.
+
         val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
         val barTop = TOP_BAR_HEIGHT
         Column(
@@ -647,9 +631,7 @@ fun ChatScreen(
     }
 }
 
-/** Within [thresholdPx] of the newest item still counts as sitting at the bottom. */
 internal fun LazyListState.isNearBottom(thresholdPx: Float): Boolean =
     firstVisibleItemIndex == 0 && firstVisibleItemScrollOffset <= thresholdPx
 
-/** Slack that absorbs overscroll and rounding, not real user scrolling. */
 private val BOUNCE_TOLERANCE = 32.dp

@@ -1,10 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-  HTTPS everywhere by default. Cleartext is permitted only for the loopback and
-  private ranges a self-hosted OpenAI-compatible server (Ollama, LM Studio, a
-  box on the LAN) is reached at; everything else, including the web-search API
-  and any remote provider, must be TLS.
--->
+
 <network-security-config>
     <base-config cleartextTrafficPermitted="false">
         <trust-anchors>

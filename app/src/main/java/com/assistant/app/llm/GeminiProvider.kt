@@ -24,17 +24,6 @@ import org.json.JSONObject
 import java.io.IOException
 import java.net.SocketTimeoutException
 
-/**
- * Native streaming client for the Google Gemini API.
- *
- * Posts to `{baseUrl}/v1beta/models/{model}:streamGenerateContent?alt=sse`
- * with `x-goog-api-key` header authentication.
- *
- * Formats multi-turn user/model history, system instructions, and inline image data,
- * parsing Server-Sent Events to emit [ChatChunk.Delta], [ChatChunk.Reasoning], and [ChatChunk.Done].
- *
- * API keys and sensitive text are never logged.
- */
 class GeminiProvider(
     private val client: OkHttpClient,
     private val apiKey: String,
@@ -132,7 +121,7 @@ class GeminiProvider(
                                         }
                                     }
                                     is ChatChunk.Done -> {
-                                        // Final stop marker received
+
                                     }
                                 }
                             }
@@ -307,7 +296,6 @@ class GeminiProvider(
     private fun httpRequest(request: ChatRequest): Request {
         val payload = JSONObject()
 
-        // 1. System instructions
         val systemTexts = request.messages
             .filter { it.first == Role.SYSTEM && it.second.isNotBlank() }
             .map { it.second }
@@ -320,7 +308,6 @@ class GeminiProvider(
             payload.put("systemInstruction", sysInstruction)
         }
 
-        // 2. Multi-turn conversation contents
         val contents = JSONArray()
         val nonSystem = request.messages.filter { it.first != Role.SYSTEM }
 
@@ -387,8 +374,6 @@ class GeminiProvider(
 
         payload.put("contents", contents)
 
-        // Reasoning control: a thinking budget, an explicit off, or (Gemini 3)
-        // a thinking level. Auto/null sends nothing, keeping provider defaults.
         val thinkingConfig = JSONObject()
         when (val reasoning = request.reasoning) {
             ReasoningConfig.Off -> thinkingConfig.put("thinkingBudget", 0)

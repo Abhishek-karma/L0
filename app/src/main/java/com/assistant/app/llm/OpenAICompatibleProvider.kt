@@ -24,17 +24,6 @@ import org.json.JSONObject
 import java.io.IOException
 import java.net.SocketTimeoutException
 
-/**
- * Streams chat completions from an OpenAI-compatible endpoint.
- *
- * Posts to `{baseUrl}/chat/completions` and reads the response line by line as
- * it arrives. Frames go through [SseParser]; each delta becomes a [ChatChunk].
- *
- * Errors are emitted as [ChatChunk.Failure] — nothing escapes the flow, and
- * every stream settles exactly once. Cancelling cancels the HTTP call.
- *
- * Never logs: the request carries the API key, the body carries user text.
- */
 class OpenAICompatibleProvider(
     private val client: OkHttpClient,
     private val baseUrl: String,
@@ -46,7 +35,7 @@ class OpenAICompatibleProvider(
         val call = try {
             client.newCall(httpRequest(request))
         } catch (_: IllegalArgumentException) {
-            // Un-parseable base URL from configuration; nothing to connect to.
+
             trySend(ChatChunk.Failure(ProviderError.Unknown))
             close()
             return@callbackFlow
@@ -54,7 +43,6 @@ class OpenAICompatibleProvider(
 
         var settled = false
 
-        /** Emits the terminal chunk and closes the flow; runs at most once. */
         fun finish(chunk: ChatChunk) {
             if (!settled) {
                 settled = true
@@ -83,7 +71,7 @@ class OpenAICompatibleProvider(
                                 settle = ::finish,
                             )
                         } catch (e: IOException) {
-                            // If the collector cancelled, the flow is already closing.
+
                             if (!call.isCanceled()) finish(ioFailure(e))
                         }
                     }
@@ -95,15 +83,9 @@ class OpenAICompatibleProvider(
             },
         )
 
-        // Cancelling the call interrupts the blocked read and releases the connection.
         awaitClose { call.cancel() }
     }
 
-    /**
-     * Reads [source] line by line, emitting one [ChatChunk.Delta] per text
-     * delta. [sendDelta] returns false once the collector is gone; [settle]
-     * sends the terminal chunk.
-     */
     private fun readStream(
         source: BufferedSource,
         sendDelta: (ChatChunk) -> Boolean,
@@ -112,11 +94,10 @@ class OpenAICompatibleProvider(
         val parser = SseParser()
         var answerSeen = false
 
-        /** Handles one event; false when reading must stop. */
         fun handle(event: SseEvent): Boolean {
             when {
                 event.data == DONE_MARKER -> {
-                    // Must contain actual answer content to be considered successful.
+
                     settle(
                         if (answerSeen) ChatChunk.Done
                         else ChatChunk.Failure(ProviderError.InvalidResponse),
@@ -152,7 +133,7 @@ class OpenAICompatibleProvider(
             when (val read = readLine(source)) {
                 SseLine.Eof -> break
                 SseLine.Overlong -> {
-                    // Discard everything after the cap and fail the stream.
+
                     settle(ChatChunk.Failure(ProviderError.InvalidResponse))
                     return
                 }
@@ -163,8 +144,7 @@ class OpenAICompatibleProvider(
                 }
             }
         }
-        // EOF without [DONE] is tolerated; flush catches a final frame the
-        // server closed without its blank line.
+
         for (event in parser.flush()) {
             if (!handle(event)) return
         }
@@ -174,26 +154,12 @@ class OpenAICompatibleProvider(
         )
     }
 
-    /**
-     * Maps a mid-stream `event: error` frame: a JSON error object surfaces as
-     * Unknown with the provider's message as detail; anything else is
-     * ServerError.
-     */
     private fun errorEventFailure(data: String): ChatChunk.Failure {
         val detail = errorMessage(data)
         val error = if (detail == null) ProviderError.ServerError else ProviderError.Unknown
         return ChatChunk.Failure(error, detail)
     }
 
-    /**
-     * Reads the next SSE line without its terminator. Bytes are only scanned
-     * here — the line is decoded exactly once, when complete — so a multi-byte
-     * character straddling a read boundary cannot be torn into U+FFFD
-     * replacements (UTF-8 continuation bytes are never 0x0A, so a line boundary
-     * is always a character boundary). A line longer than [MAX_LINE_BYTES]
-     * yields [SseLine.Overlong]; a final unterminated line under the cap is
-     * tolerated.
-     */
     private fun readLine(source: BufferedSource): SseLine {
         var scanned = 0L
         while (true) {
@@ -204,23 +170,17 @@ class OpenAICompatibleProvider(
                 return SseLine.Line(text.removeSuffix("\r"))
             }
             if (source.buffer.size > MAX_LINE_BYTES) return SseLine.Overlong
-            scanned = source.buffer.size // do not rescan known bytes
-            // Wait for one more byte without draining the buffer, so nothing is
-            // decoded mid-line.
+            scanned = source.buffer.size
+
             if (!source.request(scanned + 1)) {
                 val text = if (scanned == 0L) "" else source.readUtf8(scanned)
-                // EOF: a trailing CR was a line terminator, not content.
+
                 val line = text.removeSuffix("\r")
                 return if (line.isEmpty()) SseLine.Eof else SseLine.Line(line)
             }
         }
     }
 
-    /**
-     * The deltas of one chat-completions chunk: content, reasoning
-     * (`reasoning_content` or `reasoning`), both, or none — or null when the
-     * payload is not valid JSON.
-     */
     private fun deltasOf(data: String): List<ChatChunk>? = try {
         val choices = JSONObject(data).optJSONArray("choices")
         when {
@@ -244,7 +204,6 @@ class OpenAICompatibleProvider(
         null
     }
 
-    /** Maps non-2xx statuses. */
     private fun statusFailure(code: Int, body: String?): ChatChunk.Failure {
         val error = when {
             code == 401 || code == 403 -> ProviderError.InvalidCredentials
@@ -252,13 +211,11 @@ class OpenAICompatibleProvider(
             code >= 500 -> ProviderError.ServerError
             else -> ProviderError.Unknown
         }
-        // The provider's own text is kept as detail for unmapped statuses only;
-        // the user-facing message always comes from the enum.
+
         val detail = if (error == ProviderError.Unknown) errorMessage(body) else null
         return ChatChunk.Failure(error, detail)
     }
 
-    /** The `error.message` string providers put in JSON error bodies, if any. */
     private fun errorMessage(body: String?): String? = try {
         body
             ?.let { JSONObject(it).optJSONObject("error")?.optString("message") }
@@ -267,18 +224,12 @@ class OpenAICompatibleProvider(
         null
     }
 
-    /**
-     * Reads the error body for detail extraction, capped: a body larger than
-     * [MAX_ERROR_BODY_BYTES] returns null, so a hostile endpoint cannot grow
-     * memory without limit.
-     */
     private fun readErrorBody(body: ResponseBody?): String? {
         if (body == null) return null
         val source = body.source()
         return if (source.request(MAX_ERROR_BODY_BYTES + 1)) null else source.readUtf8()
     }
 
-    /** Timeout vs. connect-level failure. */
     private fun ioFailure(e: IOException): ChatChunk.Failure =
         ChatChunk.Failure(
             if (e is SocketTimeoutException) ProviderError.Timeout else ProviderError.NetworkUnavailable,
@@ -288,17 +239,14 @@ class OpenAICompatibleProvider(
         val payload = JSONObject().apply {
             put("model", request.model.ifBlank { model })
             put("stream", true)
-            // Only the documented OpenAI reasoning-effort parameter; models
-            // without it never get a reasoning field (capability-gated upstream).
+
             (request.reasoning as? ReasoningConfig.Effort)?.let {
                 put("reasoning_effort", it.level.name.lowercase())
             }
             put("messages", JSONArray().apply {
                 request.messages.forEachIndexed { index, (role, content) ->
                     val message = JSONObject().put("role", role.name.lowercase())
-                    // With images attached, the final user message becomes a
-                    // multi-content array; other messages stay plain strings so
-                    // text-only providers are unaffected.
+
                     if (role == Role.USER && index == request.messages.lastIndex && request.images.isNotEmpty()) {
                         val parts = JSONArray()
                         if (content.isNotBlank()) {
@@ -333,28 +281,20 @@ class OpenAICompatibleProvider(
         const val PATH = "/chat/completions"
         const val DONE_MARKER = "[DONE]"
 
-        /** SSE event name some providers use for mid-stream failures. */
         const val ERROR_EVENT = "error"
 
-        /** Cap on the error-body bytes read for detail extraction. */
         const val MAX_ERROR_BODY_BYTES = 64L * 1024
 
-        /** Cap on a single SSE line; longer lines fail the stream. */
         const val MAX_LINE_BYTES = 64L * 1024
 
         val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
     }
 }
 
-/** Outcome of one bounded line read from the SSE stream. */
 private sealed interface SseLine {
-    /** A complete line, or an unterminated tail tolerated before EOF. */
+
     data class Line(val text: String) : SseLine
 
-    /**
-     * The line exceeded [MAX_LINE_BYTES]; the stream fails and the response is
-     * closed, so nothing after the cap is read.
-     */
     data object Overlong : SseLine
 
     data object Eof : SseLine

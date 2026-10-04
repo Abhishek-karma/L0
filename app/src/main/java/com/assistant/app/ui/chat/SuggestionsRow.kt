@@ -18,9 +18,6 @@ import com.assistant.app.ui.theme.AppSpacing
 
 import androidx.compose.ui.platform.testTag
 
-/**
- * Horizontally scrollable chips for follow-up prompt suggestions.
- */
 @Composable
 fun SuggestionsRow(
     suggestions: List<String>,

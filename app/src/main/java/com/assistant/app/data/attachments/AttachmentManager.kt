@@ -5,9 +5,6 @@ import com.assistant.app.data.local.AttachmentEntity
 import com.assistant.app.llm.model.UiAttachment
 import java.io.File
 
-/**
- * Manages staged pending attachments, limit enforcement, and file cleanup on disk.
- */
 class AttachmentManager(
     private val attachmentsDir: File? = null
 ) {

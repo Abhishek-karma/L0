@@ -115,10 +115,6 @@ data class ComposerAttachAction(
 
 private const val COMPOSER_MAX_LINES = 8
 
-/**
- * Modern, spacious AI chat composer.
- * Focuses on comfortable typing and contextual actions without permanent toolbar clutter.
- */
 @Composable
 fun Composer(
     value: String,
@@ -169,7 +165,7 @@ fun Composer(
                 vertical = AppSpacing.xs,
             ),
         ) {
-            // Main Text Input Field
+
             TextField(
                 value = value,
                 onValueChange = onValueChange,
@@ -206,7 +202,6 @@ fun Composer(
                 ),
             )
 
-            // Contextual Actions Bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -214,7 +209,7 @@ fun Composer(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                // Left Contextual Tools (Attach & Web Search)
+
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
@@ -291,7 +286,6 @@ fun Composer(
                     }
                 }
 
-                // Right Contextual Controls (Mic & Send/Stop)
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
@@ -418,7 +412,6 @@ private fun ThinkControl(
     }
 }
 
-/** The reasoning choices the active model supports, in menu order. */
 private fun thinkOptions(capability: ThinkCapability): List<ReasoningConfig> = when (capability) {
     ThinkCapability.Unsupported, ThinkCapability.Unknown -> emptyList()
     is ThinkCapability.Effort -> buildList {

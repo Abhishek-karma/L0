@@ -7,11 +7,10 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 
-/** Only [NoMatch] gets special UI treatment; the rest degrade to text. */
 enum class VoiceInputError { NoMatch, MicUnavailable, PermissionDenied, Busy, Unknown }
 
 sealed interface VoiceInputEvent {
-    /** Partial text arrived; recognition is still running. */
+
     data object Transcribing : VoiceInputEvent
 
     data class Transcript(val text: String) : VoiceInputEvent
@@ -19,22 +18,11 @@ sealed interface VoiceInputEvent {
     data class Failed(val kind: VoiceInputError) : VoiceInputEvent
 }
 
-/**
- * Speech-to-text as a pure input path into the normal chat pipeline. Recognition
- * runs only while the user explicitly asked for it: no background listening, no
- * wake word, no service.
- *
- * The platform work is behind [Engine] so tests inject a fake.
- */
 class VoiceInput(private val engine: Engine) {
 
     interface Engine {
         fun isAvailable(): Boolean
 
-        /**
-         * Starts one recognition attempt, delivering events on the main thread.
-         * Calling [start] again before an attempt finishes replaces it.
-         */
         fun start(onEvent: (VoiceInputEvent) -> Unit)
 
         fun stop()
@@ -46,7 +34,6 @@ class VoiceInput(private val engine: Engine) {
 
     fun stop() = engine.stop()
 
-    /** An engine for devices (and Robolectric tests) without recognition. */
     companion object {
         fun unavailable(): VoiceInput = VoiceInput(object : Engine {
             override fun isAvailable(): Boolean = false
@@ -56,18 +43,12 @@ class VoiceInput(private val engine: Engine) {
     }
 }
 
-/**
- * [VoiceInput.Engine] over [SpeechRecognizer], created on first use and reused.
- * Only the attempt whose callback is current delivers events, so a cancelled
- * attempt cannot leak results.
- */
 class AndroidVoiceInput(context: Context) : VoiceInput.Engine {
 
     private val appContext = context.applicationContext
 
     private var recognizer: SpeechRecognizer? = null
 
-    /** Callback of the current attempt; set by [start], cleared by events/stop. */
     private var callback: ((VoiceInputEvent) -> Unit)? = null
 
     override fun isAvailable(): Boolean = SpeechRecognizer.isRecognitionAvailable(appContext)
@@ -124,7 +105,6 @@ class AndroidVoiceInput(context: Context) : VoiceInput.Engine {
             deliver(event)
         }
 
-        // Required by the interface but not part of our minimal flow.
         override fun onReadyForSpeech(params: Bundle?) = Unit
         override fun onBeginningOfSpeech() = Unit
         override fun onRmsChanged(rmsdB: Float) = Unit
@@ -132,7 +112,6 @@ class AndroidVoiceInput(context: Context) : VoiceInput.Engine {
         override fun onEndOfSpeech() = Unit
         override fun onEvent(eventType: Int, params: Bundle?) = Unit
 
-        /** One-shot delivery to the current attempt, then the attempt is over. */
         private fun deliver(event: VoiceInputEvent) {
             val active = callback
             callback = null

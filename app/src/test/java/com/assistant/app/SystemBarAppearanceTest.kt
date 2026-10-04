@@ -12,12 +12,6 @@ import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/**
- * The in-app theme override must drive the status/navigation bar icon
- * contrast. `enableEdgeToEdge` alone reads the system dark-mode flag, so a
- * forced DARK theme on a light-mode device used to leave dark icons on a dark
- * background.
- */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class SystemBarAppearanceTest {
