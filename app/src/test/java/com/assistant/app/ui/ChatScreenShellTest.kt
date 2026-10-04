@@ -3,12 +3,18 @@ package com.assistant.app.ui
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.rememberDrawerState
@@ -177,6 +183,105 @@ class ChatScreenShellTest {
 
         composeRule.runOnIdle { runBlocking { listState.scrollBy(400f) } }
         composeRule.runOnIdle { assertFalse(listState.isNearBottom(64f)) }
+    }
+
+    @Test
+    fun reverseLayoutPinsNewestMessageWhileItGrows() {
+        lateinit var listState: LazyListState
+        var newestHeight by mutableStateOf(80.dp)
+        val bottoms = mutableMapOf<Int, Float>()
+
+        composeRule.setContent {
+            ChatTheme {
+                listState = rememberLazyListState()
+                LazyColumn(
+                    state = listState,
+                    reverseLayout = true,
+                    modifier = Modifier.size(160.dp),
+                ) {
+                    items(8) { index ->
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .height(if (index == 0) newestHeight else 80.dp)
+                                .onGloballyPositioned { bottoms[index] = it.boundsInRoot().bottom },
+                        )
+                    }
+                }
+            }
+        }
+
+        val pinnedBefore = bottoms[0]
+        composeRule.runOnIdle { newestHeight = 240.dp }
+
+        composeRule.runOnIdle {
+            assertEquals(0, listState.firstVisibleItemIndex)
+            assertEquals(0, listState.firstVisibleItemScrollOffset)
+            assertEquals(pinnedBefore, bottoms[0])
+        }
+    }
+
+    @Test
+    fun growingMessageDoesNotMoveReaderWhoScrolledBack() {
+        lateinit var listState: LazyListState
+        var newestHeight by mutableStateOf(80.dp)
+        val tops = mutableMapOf<Int, Float>()
+
+        composeRule.setContent {
+            ChatTheme {
+                listState = rememberLazyListState()
+                LazyColumn(
+                    state = listState,
+                    reverseLayout = true,
+                    modifier = Modifier.size(160.dp),
+                ) {
+                    items(8) { index ->
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .height(if (index == 0) newestHeight else 80.dp)
+                                .onGloballyPositioned { tops[index] = it.boundsInRoot().top },
+                        )
+                    }
+                }
+            }
+        }
+
+        composeRule.runOnIdle { runBlocking { listState.scrollBy(400f) } }
+        val anchorIndex = listState.firstVisibleItemIndex
+        val anchorTop = tops[anchorIndex]
+        assertTrue("reader never left the bottom", anchorIndex > 0)
+
+        composeRule.runOnIdle { newestHeight = 320.dp }
+
+        composeRule.runOnIdle {
+            assertEquals(anchorIndex, listState.firstVisibleItemIndex)
+            assertEquals(anchorTop, tops[anchorIndex])
+        }
+    }
+
+    @Test
+    fun programmaticScrollOverridesReaderPositionSoItMustStayGated() {
+        lateinit var listState: LazyListState
+        composeRule.setContent {
+            ChatTheme {
+                listState = rememberLazyListState()
+                LazyColumn(
+                    state = listState,
+                    reverseLayout = true,
+                    modifier = Modifier.size(160.dp),
+                ) {
+                    items(40) { Box(Modifier.height(80.dp)) }
+                }
+            }
+        }
+
+        composeRule.runOnIdle { runBlocking { listState.scrollBy(600f) } }
+        val readerIndex = listState.firstVisibleItemIndex
+        assertTrue("reader never left the bottom", readerIndex > 0)
+
+        composeRule.runOnIdle { runBlocking { listState.scrollToItem(0) } }
+        composeRule.runOnIdle { assertEquals(0, listState.firstVisibleItemIndex) }
     }
 
     @Test

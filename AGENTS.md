@@ -192,17 +192,37 @@ Create a new component when it improves clarity or reuse.
 
 ## Comments
 
-Do not add comments where the code is already self-explanatory.
+Default to no comment.
 
-Comments should be:
+Code must be readable without comments.
 
-- short
-- necessary
-- factual
+Add a comment only when the code cannot express the intent on its own.
 
-Remove obsolete or unnecessary comments.
+Never use a comment to:
 
-Do not use comments to explain obvious code.
+- restate what the next line does
+- narrate a change ("now we scroll", "fixed this")
+- describe the type, the language, or the framework
+- apologize for complexity
+
+Comments must be:
+
+- short, ideally one line
+- necessary, never decorative
+- factual, never speculative
+- about the present code, never about history
+
+Keep a comment only if deleting it would lose real intent, such as a non-obvious constraint, a deliberate workaround, or a surprising platform behavior. If deleting a comment would not lose intent, delete it.
+
+Prefer expressing intent in code:
+
+- extract a well-named function or value over a comment that explains it
+- use a meaningful name over a comment that describes it
+- express an invariant as an assertion or a type over a comment that states it
+
+Tests follow the same rule. Name the test after the behavior it verifies. Do not add KDoc above a test that only repeats the test name.
+
+Remove obsolete or unnecessary comments, including those inherited from earlier changes.
 
 ---
 

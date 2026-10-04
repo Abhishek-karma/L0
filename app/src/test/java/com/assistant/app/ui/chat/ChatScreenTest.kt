@@ -183,6 +183,26 @@ class ChatScreenTest {
     }
 
     @Test
+    fun streamingDoesNotResubscribeToTheLatestMessage() {
+        val fixture = ScriptedChatFixture(emptyList())
+        setContent(fixture)
+        typeAndSend("Hi")
+        waitUntilContentDescription(string(R.string.cd_send))
+
+        fixture.provider.script = listOf(
+            ScriptedEvent.Emit(FIRST_CHUNK),
+            ScriptedEvent.Delay(50),
+            ScriptedEvent.Emit(LATE_TOKEN),
+        )
+        typeAndSend("Second")
+
+        waitUntilText(LATE_TOKEN, substring = true)
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText(FIRST_CHUNK, substring = true).assertIsDisplayed()
+    }
+
+    @Test
     fun needsSetupShowsCalmSetupStateAndOpensSettings() {
         var settingsOpened = false
         setContent(ScriptedChatFixture(emptyList(), ChatLlmState.NeedsSetup)) {
@@ -196,5 +216,10 @@ class ChatScreenTest {
 
         composeRule.onNodeWithText(string(R.string.chat_open_settings)).performClick()
         assertTrue(settingsOpened)
+    }
+
+    private companion object {
+        const val FIRST_CHUNK = "First chunk of the streamed reply."
+        const val LATE_TOKEN = "late streamed token"
     }
 }

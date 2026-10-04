@@ -7,7 +7,7 @@ import com.assistant.app.llm.model.Role
 
 object FollowUpSuggestions {
 
-    const val TIMEOUT_MS = 6_000L
+    const val TIMEOUT_MS = 30_000L
     const val MAX_ITEMS = 2
 
     private val ACKNOWLEDGEMENT_REGEX = Regex(

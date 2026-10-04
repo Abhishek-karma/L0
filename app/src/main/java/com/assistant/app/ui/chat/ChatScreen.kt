@@ -280,15 +280,10 @@ fun ChatScreen(
             .distinctUntilChanged()
             .collect { atBottom -> if (atBottom) followLatest = true }
     }
-    val lastMessage = state.messages.lastOrNull()
-    LaunchedEffect(lastMessage?.id, lastMessage?.content?.length) {
+    val arrivedMessageCount = state.messages.size
+    LaunchedEffect(arrivedMessageCount) {
         if (!followLatest) return@LaunchedEffect
-
-        if (isBusy) {
-            listState.scrollToItem(0)
-        } else {
-            listState.animateScrollToItem(0)
-        }
+        listState.scrollToItem(0)
     }
 
     LaunchedEffect(listState) {

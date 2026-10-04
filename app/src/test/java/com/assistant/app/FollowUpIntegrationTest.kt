@@ -6,6 +6,7 @@ import com.assistant.app.data.ChatLlmState
 import com.assistant.app.data.ChatRepository
 import com.assistant.app.data.ChatStatus
 import com.assistant.app.data.ConversationStore
+import com.assistant.app.data.FollowUpSuggestions
 import com.assistant.app.data.local.ChatDatabase
 import com.assistant.app.llm.FakeLlmProvider
 import com.assistant.app.llm.LlmProvider
@@ -136,7 +137,7 @@ class FollowUpIntegrationTest {
         script = listOf(ScriptedEvent.Emit("Useful complete response from assistant.")),
         followUpSuggestions = { _, _, _, _ ->
 
-            delay(10_000)
+            delay(FollowUpSuggestions.TIMEOUT_MS + 1_000)
             listOf("Slow question?")
         },
     ) { viewModel, _, _, _ ->
