@@ -122,9 +122,6 @@ interface ProviderModelDao {
     @Query("SELECT * FROM provider_models WHERE providerId = :providerId AND isActive = 1 LIMIT 1")
     suspend fun activeForProvider(providerId: Long): ProviderModelEntity?
 
-    @Query("SELECT COUNT(*) FROM provider_models WHERE providerId = :providerId")
-    suspend fun countForProvider(providerId: Long): Int
-
     @Insert
     suspend fun insert(model: ProviderModelEntity): Long
 

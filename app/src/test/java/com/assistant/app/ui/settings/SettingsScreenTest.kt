@@ -330,7 +330,11 @@ class SettingsScreenTest {
         openPage(context.getString(R.string.settings_section_licenses))
         composeRule.onNodeWithText(context.getString(R.string.licenses_intro)).assertIsDisplayed()
         composeRule.onNodeWithText(
-            context.getString(R.string.licenses_count, expectedCount),
+            context.resources.getQuantityString(
+                R.plurals.licenses_count,
+                expectedCount,
+                expectedCount,
+            ),
         ).assertIsDisplayed()
     }
 

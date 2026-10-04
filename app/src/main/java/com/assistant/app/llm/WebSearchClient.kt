@@ -60,8 +60,10 @@ class DuckDuckGoSearchProvider(
                     return@withContext SearchOutcome.Failure(SearchError.InvalidResponse)
                 }
                 val html = body.readUtf8()
-                if (html.contains("anomaly", ignoreCase = true) ||
-                    html.contains("challenge", ignoreCase = true)
+                if (html.contains("anomaly-form", ignoreCase = true) ||
+                    html.contains("anomaly-modal", ignoreCase = true) ||
+                    html.contains("challenge-form", ignoreCase = true) ||
+                    html.contains("challenge-platform", ignoreCase = true)
                 ) {
                     return@withContext SearchOutcome.Failure(SearchError.RateLimited)
                 }

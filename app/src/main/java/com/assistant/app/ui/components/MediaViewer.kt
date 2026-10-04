@@ -286,9 +286,17 @@ private fun ZoomableImage(bitmap: Bitmap, contentDescription: String?, modifier:
     Box(
         modifier = modifier.pointerInput(Unit) {
             detectTransformGestures { _, pan, zoom, _ ->
-                scale = (scale
- * zoom).coerceIn(1f, 6f)
-                offset = if (scale > 1f) offset + pan else Offset.Zero
+                val next = (scale * zoom).coerceIn(1f, 6f)
+                scale = next
+                val bound = (next - 1f) * MAX_PAN_DP.toPx()
+                offset = if (next > 1f) {
+                    Offset(
+                        x = (offset.x + pan.x).coerceIn(-bound, bound),
+                        y = (offset.y + pan.y).coerceIn(-bound, bound),
+                    )
+                } else {
+                    Offset.Zero
+                }
             }
         },
         contentAlignment = Alignment.Center,
@@ -308,3 +316,5 @@ private fun ZoomableImage(bitmap: Bitmap, contentDescription: String?, modifier:
         )
     }
 }
+
+private val MAX_PAN_DP = 400.dp

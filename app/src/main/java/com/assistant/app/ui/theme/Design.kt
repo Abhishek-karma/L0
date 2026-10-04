@@ -52,8 +52,8 @@ object AppMotion {
 
 @Composable
 fun <T> appTween(durationMillis: Int): FiniteAnimationSpec<T> {
-    val animationsEnabled = remember { ValueAnimator.areAnimatorsEnabled() }
-    return if (animationsEnabled) tween(durationMillis) else snap()
+    if (!ValueAnimator.areAnimatorsEnabled()) return snap()
+    return tween(durationMillis)
 }
 
 @Composable

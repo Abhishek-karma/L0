@@ -8,7 +8,6 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -29,6 +28,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.assistant.app.R
@@ -75,21 +78,25 @@ internal fun diagramDocument(code: String, htmlLabels: Boolean = true): String =
 @Composable
 fun DiagramBlock(code: String, modifier: Modifier = Modifier) {
     var viewerOpen by remember { mutableStateOf(false) }
-    Column(modifier = modifier) {
-        Box(modifier = Modifier.fillMaxWidth()) {
-            RichBlockWebView(
-                html = diagramDocument(code),
-                modifier = Modifier.clickable { viewerOpen = true },
-            )
-            Text(
-                text = stringResource(R.string.diagram_label),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(8.dp),
-            )
-        }
+    val diagramLabel = stringResource(R.string.diagram_label)
+    Box(modifier = modifier.fillMaxWidth()) {
+        RichBlockWebView(
+            html = diagramDocument(code),
+            modifier = Modifier
+                .clickable { viewerOpen = true }
+                .semantics {
+                    role = Role.Button
+                    contentDescription = diagramLabel
+                },
+        )
+        Text(
+            text = diagramLabel,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(8.dp),
+        )
     }
     if (viewerOpen) {
         DiagramViewerDialog(code = code, onDismiss = { viewerOpen = false })

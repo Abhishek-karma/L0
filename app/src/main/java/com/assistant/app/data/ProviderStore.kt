@@ -205,6 +205,7 @@ class ProviderStore(
         db.providerModelDao().deleteForProvider(id)
         db.providerDao().delete(id)
         withContext(ioDispatcher) { keyStore.setApiKey(id, null) }
+        appPreferences.clearThinkSelections(id)
         if (db.providerDao().active() == null) {
             db.providerDao().firstOtherThan(id)?.let { db.providerDao().setActive(it.id) }
         }

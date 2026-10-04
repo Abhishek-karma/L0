@@ -320,31 +320,29 @@ internal fun ProviderEditor(
             }
         }
 
-        if (!isGeminiProvider) {
-            OutlinedTextField(
-                value = state.name,
-                onValueChange = viewModel::setName,
-                label = { Text(stringResource(R.string.settings_field_name)) },
-                singleLine = true,
-                shape = AppShape.small,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag(SettingsNameFieldTag),
-                enabled = !state.isSaving,
-            )
+        OutlinedTextField(
+            value = state.name,
+            onValueChange = viewModel::setName,
+            label = { Text(stringResource(R.string.settings_field_name)) },
+            singleLine = true,
+            shape = AppShape.small,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag(SettingsNameFieldTag),
+            enabled = !state.isSaving,
+        )
 
-            OutlinedTextField(
-                value = state.baseUrl,
-                onValueChange = viewModel::setBaseUrl,
-                label = { Text(stringResource(R.string.settings_field_endpoint)) },
-                singleLine = true,
-                shape = AppShape.small,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag(SettingsBaseUrlFieldTag),
-                enabled = !state.isSaving,
-            )
-        }
+        OutlinedTextField(
+            value = state.baseUrl,
+            onValueChange = viewModel::setBaseUrl,
+            label = { Text(stringResource(R.string.settings_field_endpoint)) },
+            singleLine = true,
+            shape = AppShape.small,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag(SettingsBaseUrlFieldTag),
+            enabled = !state.isSaving,
+        )
 
         OutlinedTextField(
             value = state.apiKeyInput,

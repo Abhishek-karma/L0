@@ -116,6 +116,16 @@ class AppPreferences(
         }
     }
 
+    suspend fun clearThinkSelections(providerId: Long) {
+        val prefix = THINK_KEY_PREFIX + providerId + "_"
+        dataStore.edit { prefs ->
+            prefs.asMap().keys
+                .filterIsInstance<Preferences.Key<String>>()
+                .filter { it.name.startsWith(prefix) }
+                .forEach { prefs.remove(it) }
+        }
+    }
+
     private fun thinkKey(providerId: Long, modelId: Long): String =
         THINK_KEY_PREFIX + providerId + "_" + modelId
 

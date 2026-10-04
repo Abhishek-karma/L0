@@ -10,6 +10,7 @@ import com.assistant.app.data.versions.AnswerVersionStore
 import com.assistant.app.llm.LlmProvider
 import com.assistant.app.llm.model.ChatChunk
 import com.assistant.app.llm.model.ChatRequest
+import com.assistant.app.llm.model.ProviderError
 import com.assistant.app.llm.model.ReasoningConfig
 import com.assistant.app.llm.model.Role
 import com.assistant.app.llm.model.ThinkCapability
@@ -31,8 +32,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.job
 import kotlinx.coroutines.sync.Mutex
@@ -87,7 +88,7 @@ class ChatRepository(
 
     private val conversationSnapshots = LinkedHashMap<String, List<UiMessage>>()
 
-    val conversations: Flow<List<ConversationEntity>> = store?.conversations() ?: emptyFlow()
+    val conversations: Flow<List<ConversationEntity>> = store?.conversations() ?: flowOf(emptyList())
 
     fun setDraft(text: String) {
         _uiState.update { it.copy(draft = text) }
@@ -771,13 +772,16 @@ class ChatRepository(
         failure: ChatChunk.Failure
     ) {
         var kept = false
+        val message = failure.detail?.takeIf { it.isNotBlank() && failure.error == ProviderError.Unknown }
+            ?.let { "${failure.error.userMessage}: $it" }
+            ?: failure.error.userMessage
         if (_uiState.value.conversationId == targetConversationId) {
             _uiState.update { state ->
                 val hasContent = state.messages.any { it.id == assistantId && it.content.isNotEmpty() }
                 kept = hasContent
                 state.copy(
                     messages = if (hasContent) state.messages else state.messages.filterNot { it.id == assistantId },
-                    status = ChatStatus.Error(failure.error.userMessage),
+                    status = ChatStatus.Error(message),
                 )
             }
         }

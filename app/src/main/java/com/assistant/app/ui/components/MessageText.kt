@@ -31,6 +31,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -85,8 +86,8 @@ private fun streamingBlocks(text: String, codeBackground: Color, linkColor: Colo
 @Composable
 fun MessageText(
     text: String,
-    streaming: Boolean = false,
     modifier: Modifier = Modifier,
+    streaming: Boolean = false,
 ) {
     val codeBackground = MaterialTheme.colorScheme.surfaceContainerHighest
     val linkColor = MaterialTheme.colorScheme.primary
@@ -112,7 +113,7 @@ fun MessageText(
             label = "cursorAlpha",
         )
     } else {
-        remember { mutableStateOf(0f) }
+        remember { mutableFloatStateOf(0f) }
     }
 
     Column(

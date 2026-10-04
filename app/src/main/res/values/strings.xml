@@ -16,6 +16,9 @@
     <string name="composer_hint">Ask anything…</string>
     <string name="composer_web_search">Web search</string>
     <string name="composer_search_toggle">Search</string>
+    <string name="drawer_tagline">Radiant intelligence, pure thought</string>
+    <string name="switch_state_on">On</string>
+    <string name="switch_state_off">Off</string>
     <string name="diagram_label">Diagram</string>
     <string name="menu_copied">Copied!</string>
     <string name="composer_listening">Listening…</string>
@@ -91,16 +94,12 @@
 
     <string name="settings_provider_none">No provider yet. Add one to start chatting.</string>
     <string name="settings_add_provider">Add provider</string>
-    <string name="settings_quick_presets">Quick presets</string>
     <string name="settings_delete">Delete</string>
     <string name="settings_delete_provider_title">Delete provider?</string>
     <string name="settings_delete_provider_message">“%1$s”, its models and its stored API key will be removed.</string>
     <string name="settings_cancel">Cancel</string>
-    <string name="cd_set_active">Set as active provider</string>
 
-    <string name="cd_switch_provider">Switch provider</string>
     <string name="settings_field_name">Name</string>
-    <string name="settings_field_base_url">Base URL</string>
     <string name="settings_field_api_key">API key</string>
     <string name="settings_field_model">Model</string>
     <string name="settings_models_title">Models</string>
@@ -115,7 +114,6 @@
     <string name="settings_test_connection">Test connection</string>
     <string name="settings_testing_connection">Testing…</string>
     <string name="settings_connection_success">✓ Connection successful</string>
-    <string name="settings_connection_successful">✓ Connection successful</string>
     <string name="settings_gemini_connected">✓ Gemini connected</string>
     <string name="settings_connection_failed">✕ Failed</string>
     <string name="settings_active_provider_section">Active provider</string>
@@ -125,7 +123,6 @@
     <string name="settings_get_api_key">Get API key</string>
     <string name="settings_field_endpoint">Endpoint</string>
     <string name="settings_edit_provider">Edit</string>
-    <string name="settings_switch_to_provider">Set active</string>
     <string name="settings_voice_output">Voice output</string>
     <string name="settings_voice_unavailable">Voice output is not available on this device.</string>
     <string name="settings_voice_auto_play">Auto-play responses</string>
@@ -158,14 +155,16 @@
     <string name="think_low">Low</string>
     <string name="think_medium">Medium</string>
     <string name="think_high">High</string>
-    <string name="think_budget_option">%1$d tokens</string>
+    <plurals name="think_budget_option">
+        <item quantity="one">%1$d token</item>
+        <item quantity="other">%1$d tokens</item>
+    </plurals>
 
     <string name="voice_no_match_hint">Didn\u2019t catch that — try again.</string>
     <string name="voice_mic_rationale">Microphone permission is needed for voice input. You can keep typing instead.</string>
     <string name="voice_listening_hint">Listening… Speak now or tap to cancel.</string>
     <string name="voice_processing_hint">Processing speech…</string>
     <string name="voice_error_hint">Voice input error — tap to try again.</string>
-    <string name="voice_unavailable_hint">Voice input is not available on this device.</string>
     <string name="cd_voice_listening">Listening for voice, tap to cancel</string>
     <string name="cd_voice_processing">Processing voice input</string>
     <string name="cd_stop_speaking">Stop spoken playback</string>
@@ -187,7 +186,24 @@
     <string name="onboarding_title_2">Your data, your control</string>
     <string name="onboarding_body_2">Conversations are stored on this device. You configure the provider and its key; there is no account requirement.</string>
     <string name="onboarding_title_3">What you can do</string>
-    <string name="onboarding_body_3"></string>
+    <string name="onboarding_body_3">Everything works offline until you send a message.</string>
+    <string name="onboarding_page_x_of_y">Page %1$d of %2$d</string>
+    <string name="onboarding_feat_providers_title">OpenAI-Compatible</string>
+    <string name="onboarding_feat_providers_subtitle">Works with standard AI providers and endpoints</string>
+    <string name="onboarding_feat_keys_title">On-Device Keys</string>
+    <string name="onboarding_feat_keys_subtitle">API keys stay encrypted on your phone</string>
+    <string name="onboarding_feat_direct_title">Direct API Calls</string>
+    <string name="onboarding_feat_direct_subtitle">No intermediary servers or hidden tracking</string>
+    <string name="onboarding_feat_custom_title">Custom Providers</string>
+    <string name="onboarding_feat_custom_subtitle">Configure base URLs and the models you want</string>
+    <string name="onboarding_feat_reasoning_title">Reasoning Visibility</string>
+    <string name="onboarding_feat_reasoning_subtitle">View structured thinking and model search steps</string>
+    <string name="onboarding_feat_search_title">Optional Web Search</string>
+    <string name="onboarding_feat_search_subtitle">Ground answers with live web research when enabled</string>
+    <string name="onboarding_feat_chat_subtitle">Fast streaming answers with version comparison</string>
+    <string name="onboarding_feat_voice_subtitle">Hands-free voice input and spoken answers</string>
+    <string name="onboarding_feat_images_subtitle">Camera capture and photo analysis context</string>
+    <string name="onboarding_feat_files_subtitle">Plain text and document file ingestion</string>
     <string name="onboarding_cap_chat">Text chat with streaming answers</string>
     <string name="onboarding_cap_voice">Voice input and spoken responses</string>
     <string name="onboarding_cap_images">Attach images from camera or gallery</string>
@@ -218,7 +234,6 @@
     <string name="cd_back">Back</string>
 
     <string name="settings_not_configured">Not set</string>
-    <string name="settings_configured">Configured</string>
     <string name="settings_not_available">Unavailable</string>
 
     <string name="settings_group_ai">AI</string>
@@ -230,16 +245,6 @@
     <string name="settings_provider_inactive">Tap to use</string>
     <string name="settings_provider_active">In use</string>
     <string name="settings_provider_no_model">No model set</string>
-    <string name="settings_provider_setup_guide">Getting an API key</string>
-    <string name="settings_guide_step_1">Open the provider\'s API key page.</string>
-    <string name="settings_guide_step_2">Sign in or create an account.</string>
-    <string name="settings_guide_step_3">Create a new key and copy it.</string>
-    <string name="settings_guide_step_4">Paste it into the API key field above.</string>
-    <string name="settings_guide_step_5">Choose a model, test the connection, then save.</string>
-    <string name="settings_guide_key_use">L0 stores the key on this device in encrypted storage and sends it only to the provider endpoint you configure. Anyone with access to the unlocked device can read it, so treat it like a password.</string>
-    <string name="settings_guide_open_page">Open provider page</string>
-    <string name="settings_guide_close">Close</string>
-    <string name="settings_guide_own_endpoint">This endpoint is not one of the presets. Get the key and the base URL from whoever operates this service.</string>
 
     <string name="settings_about_description">A private, bring-your-own-key AI chat client. Conversations stay in this app\'s storage on your device; answers come from the provider you configure.</string>
     <string name="settings_about_privacy">Privacy policy</string>
@@ -250,13 +255,11 @@
     <string name="settings_check_for_updates_desc">Tap to check GitHub releases</string>
     <string name="settings_update_checking">Checking for updates…</string>
     <string name="settings_update_up_to_date">L0 is up to date</string>
-    <string name="settings_update_available">Update available</string>
     <string name="settings_update_available_version">Version %1$s is available</string>
     <string name="settings_update_failed">Couldn\'t check for updates</string>
     <string name="settings_update_auto_check">Auto-check updates</string>
     <string name="settings_update_auto_check_desc">Check GitHub releases in background</string>
     <string name="settings_update_download">Download APK</string>
-    <string name="settings_update_view_release">View on GitHub</string>
     <string name="settings_update_dismiss">Later</string>
     <string name="settings_update_dialog_title">Update Available</string>
     <string name="settings_update_dialog_version">Version %1$s is available (current: %2$s).</string>
@@ -303,7 +306,10 @@
     <string name="licenses_intro">Libraries bundled in this build, generated from the app\'s Gradle dependencies. Tap a library to read its license.</string>
     <string name="licenses_unavailable">License information is not available in this build.</string>
     <string name="licenses_loading">Loading licenses…</string>
-    <string name="licenses_count">%1$d libraries</string>
+    <plurals name="licenses_count">
+        <item quantity="one">%1$d library</item>
+        <item quantity="other">%1$d libraries</item>
+    </plurals>
 
     <string name="settings_section_help">Help</string>
     <string name="help_intro">Short answers for the things that usually go wrong. L0 has no account system, so everything below is something you configure yourself.</string>

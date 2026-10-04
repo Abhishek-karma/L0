@@ -6,6 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.assistant.app.R
 import com.assistant.app.ui.theme.AppCodeFontFamily
@@ -50,7 +51,11 @@ internal fun LicensesPage() {
         return
     }
     Text(
-        text = stringResource(R.string.licenses_count, libraries.size),
+        text = pluralStringResource(
+                R.plurals.licenses_count,
+                libraries.size,
+                libraries.size,
+            ),
         style = MaterialTheme.typography.labelMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )

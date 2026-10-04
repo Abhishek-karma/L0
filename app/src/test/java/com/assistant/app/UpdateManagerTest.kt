@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -33,8 +34,10 @@ class UpdateManagerTest {
     private val notifiedList = mutableListOf<UpdateInfo>()
 
     private val fakeNotifier = object : UpdateNotifier {
-        override fun showUpdateNotification(updateInfo: UpdateInfo) {
+        var posts = true
+        override fun showUpdateNotification(updateInfo: UpdateInfo): Boolean {
             notifiedList.add(updateInfo)
+            return posts
         }
     }
 
@@ -113,5 +116,34 @@ class UpdateManagerTest {
         manager.checkForUpdates(manual = false)
         assertTrue(manager.updateStatus.value is UpdateStatus.Available)
         assertEquals(0, notifiedList.size)
+    }
+
+    @Test
+    fun `blocked notification does not mark the version as notified`() = runBlocking {
+        fakeNotifier.posts = false
+        val updateInfo = UpdateInfo(
+            latestVersion = "1.2.0",
+            releaseTitle = "v1.2.0",
+            releaseNotes = "",
+            htmlUrl = "https://example.com/v1.2.0",
+            downloadUrl = "",
+        )
+        val fakeChecker = object : UpdateChecker {
+            override suspend fun checkForUpdate(currentVersion: String): UpdateCheckResult {
+                return UpdateCheckResult.Available(updateInfo)
+            }
+        }
+
+        val manager = UpdateManager(
+            currentVersion = "1.0.0",
+            updateChecker = fakeChecker,
+            updateNotifier = fakeNotifier,
+            appPreferences = appPreferences,
+            scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined),
+        )
+
+        manager.checkForUpdates(manual = false)
+
+        assertNull(appPreferences.lastNotifiedVersion.first())
     }
 }

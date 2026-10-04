@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
@@ -37,7 +38,9 @@ fun SuggestionsRow(
                 shape = AppShape.pill,
                 color = MaterialTheme.colorScheme.surfaceContainerLow,
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-                modifier = Modifier.testTag("suggestion_chip"),
+                modifier = Modifier
+                    .testTag("suggestion_chip")
+                    .widthIn(max = MAX_CHIP_WIDTH),
             ) {
                 Text(
                     text = suggestion,
@@ -51,3 +54,5 @@ fun SuggestionsRow(
         }
     }
 }
+
+private val MAX_CHIP_WIDTH = 280.dp

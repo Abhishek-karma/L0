@@ -79,7 +79,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
@@ -108,7 +107,6 @@ import com.assistant.app.ui.theme.AppMotion
 import com.assistant.app.ui.theme.AppSpacing
 import com.assistant.app.ui.theme.AppShape
 import com.assistant.app.ui.theme.appTween
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -128,6 +126,7 @@ fun ChatScreen(
     val state by viewModel.uiState.collectAsState()
     val chatLlmState by viewModel.chatLlm.collectAsState()
     val reasoningVisible by viewModel.reasoningVisible.collectAsState()
+    val voiceOut by viewModel.voiceOutputEnabled.collectAsState()
     var editingMessageId by remember { mutableStateOf<String?>(null) }
     var draftBeforeEdit by remember { mutableStateOf("") }
     var showMicRationale by remember { mutableStateOf(false) }
@@ -191,7 +190,11 @@ fun ChatScreen(
         cameraLauncher.launch(uri)
     }
     DisposableEffect(Unit) {
-        onDispose { cameraFilePath?.let { File(it).delete() } }
+        viewModel.setChatScreenActive(true)
+        onDispose {
+            viewModel.setChatScreenActive(false)
+            cameraFilePath?.let { File(it).delete() }
+        }
     }
 
     val attachActions = if (viewModel.attachmentSupport) {
@@ -275,12 +278,6 @@ fun ChatScreen(
     var followLatest by remember { mutableStateOf(true) }
     LaunchedEffect(dragged) {
         if (dragged) followLatest = false
-    }
-    val bounceTolerancePx = with(LocalDensity.current) { BOUNCE_TOLERANCE.toPx() }
-    LaunchedEffect(listState, bounceTolerancePx) {
-        snapshotFlow { listState.isNearBottom(bounceTolerancePx) }
-            .distinctUntilChanged()
-            .collect { atBottom -> if (atBottom) followLatest = true }
     }
     val arrivedMessageCount = state.messages.size
     LaunchedEffect(arrivedMessageCount) {
@@ -457,7 +454,6 @@ fun ChatScreen(
     Scaffold(
         modifier = modifier,
         topBar = {
-            val voiceOut by viewModel.voiceOutputEnabled.collectAsState()
             AssistantTopBar(
                 title = stringResource(R.string.app_name),
                 onOpenDrawer = onOpenDrawer,
@@ -536,7 +532,11 @@ fun ChatScreen(
                                 onSwitchVersion = viewModel::switchVersion,
                                 listState = listState,
                                 showReasoning = reasoningVisible,
-                                onSpeakMessage = if (viewModel.speakAvailable) viewModel::speakMessage else null,
+                                onSpeakMessage = if (viewModel.ttsAvailable && voiceOut) {
+                                    viewModel::speakMessage
+                                } else {
+                                    null
+                                },
                                 topPadding = barTop,
                                 modifier = Modifier.fillMaxWidth(),
                             )
@@ -641,8 +641,3 @@ fun ChatScreen(
         }
     }
 }
-
-internal fun LazyListState.isNearBottom(thresholdPx: Float): Boolean =
-    firstVisibleItemIndex == 0 && firstVisibleItemScrollOffset <= thresholdPx
-
-private val BOUNCE_TOLERANCE = 32.dp

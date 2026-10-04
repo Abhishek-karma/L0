@@ -25,7 +25,6 @@ class VoiceHandler(
 
     val isVoiceInputAvailable: Boolean get() = voiceInput.isAvailable
     val ttsAvailable: Boolean get() = voiceOutput.isAvailable
-    val speakAvailable: Boolean get() = isVoiceOutputEnabled() && voiceOutput.isAvailable
 
     fun onMicClick() {
         if (!voiceInput.isAvailable) return

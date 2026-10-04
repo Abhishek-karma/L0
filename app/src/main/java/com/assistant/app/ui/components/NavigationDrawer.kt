@@ -111,7 +111,7 @@ fun AppDrawer(
                                 color = MaterialTheme.colorScheme.onSurface,
                             )
                             Text(
-                                text = "Radiant intelligence, pure thought",
+                                text = stringResource(R.string.drawer_tagline),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )

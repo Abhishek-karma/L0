@@ -35,13 +35,11 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.printToString
 import com.assistant.app.R
 import com.assistant.app.ui.chat.ChatScreen
-import com.assistant.app.ui.chat.isNearBottom
 import com.assistant.app.llm.ScriptedEvent
 import com.assistant.app.ui.components.ChatModelOption
 import com.assistant.app.ui.components.ComposerInputTag
 import com.assistant.app.ui.theme.ChatTheme
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -158,31 +156,6 @@ class ChatScreenShellTest {
         composeRule.onNodeWithContentDescription(
             composeRule.activity.getString(R.string.cd_toggle_speaker),
         ).assertDoesNotExist()
-    }
-
-    @Test
-    fun onlyBounceSizedDriftStillCountsAsBeingAtTheBottom() {
-        lateinit var listState: LazyListState
-        composeRule.setContent {
-            ChatTheme {
-                listState = rememberLazyListState()
-                LazyColumn(
-                    state = listState,
-                    reverseLayout = true,
-                    modifier = Modifier.size(160.dp),
-                ) {
-                    items(20) { Box(Modifier.height(80.dp)) }
-                }
-            }
-        }
-
-        composeRule.runOnIdle { assertTrue(listState.isNearBottom(0f)) }
-
-        composeRule.runOnIdle { runBlocking { listState.scrollBy(20f) } }
-        composeRule.runOnIdle { assertTrue(listState.isNearBottom(64f)) }
-
-        composeRule.runOnIdle { runBlocking { listState.scrollBy(400f) } }
-        composeRule.runOnIdle { assertFalse(listState.isNearBottom(64f)) }
     }
 
     @Test

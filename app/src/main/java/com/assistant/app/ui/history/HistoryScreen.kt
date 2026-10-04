@@ -7,6 +7,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -96,7 +97,7 @@ private val groupLabels = intArrayOf(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HistoryScreen(
-    conversations: List<ConversationSummary>,
+    conversations: List<ConversationSummary>?,
     onOpen: (String) -> Unit,
     onDelete: (String) -> Unit,
     onTogglePin: (String, Boolean) -> Unit,
@@ -135,7 +136,16 @@ fun HistoryScreen(
             )
         },
     ) { innerPadding ->
-        if (conversations.isEmpty()) {
+        if (conversations == null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator()
+            }
+        } else if (conversations.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()

@@ -353,7 +353,7 @@ class SettingsViewModel(
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
-
+                _uiState.update { it.copy(formError = DELETE_FAILED) }
                 return@launch
             }
             _uiState.update { state ->
@@ -613,6 +613,7 @@ class SettingsViewModel(
         private const val TAG = "SettingsViewModel"
         const val PING_MESSAGE = "ping"
         const val SAVE_FAILED = "Could not save settings."
+    const val DELETE_FAILED = "Could not delete this provider."
 
         const val TEST_TIMEOUT_MS = 30_000L
     }

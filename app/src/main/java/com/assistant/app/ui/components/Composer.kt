@@ -45,9 +45,13 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.assistant.app.R
 import com.assistant.app.data.VoiceStatus
@@ -137,6 +141,8 @@ fun Composer(
 ) {
     val haptics = rememberHaptics()
     val isNotBlank = value.isNotBlank()
+    val searchStateLabel = stringResource(if (searchActive) R.string.switch_state_on else R.string.switch_state_off)
+    val searchToggleLabel = stringResource(R.string.cd_toggle_search)
     val borderCol by animateColorAsState(
         targetValue = if (isNotBlank || isGenerating) {
             MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
@@ -244,7 +250,13 @@ fun Composer(
                             } else {
                                 Color.Transparent
                             },
-                            modifier = Modifier.height(36.dp),
+                            modifier = Modifier
+                                .height(36.dp)
+                                .semantics(mergeDescendants = true) {
+                                    role = Role.Switch
+                                    contentDescription = searchToggleLabel
+                                    stateDescription = searchStateLabel
+                                },
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -252,7 +264,7 @@ fun Composer(
                             ) {
                                 Icon(
                                     painter = painterResource(AppIcons.Globe),
-                                    contentDescription = stringResource(R.string.cd_toggle_search),
+                                    contentDescription = null,
                                     tint = if (searchActive) {
                                         MaterialTheme.colorScheme.primary
                                     } else {
@@ -437,7 +449,11 @@ private fun thinkOptionLabel(option: ReasoningConfig): String = when (option) {
             ReasoningEffort.HIGH -> R.string.think_high
         },
     )
-    is ReasoningConfig.Budget -> stringResource(R.string.think_budget_option, option.tokens)
+    is ReasoningConfig.Budget -> pluralStringResource(
+                    R.plurals.think_budget_option,
+                    option.tokens,
+                    option.tokens,
+                )
 }
 
 @Composable

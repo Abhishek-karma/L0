@@ -56,7 +56,15 @@ class ChatViewModel(
     val uiState: StateFlow<ChatUiState> = repository.uiState
     val chatLlm: StateFlow<ChatLlmState> = chatLlm
 
-    val conversationSummaries: StateFlow<List<ConversationSummary>> = repository.conversations
+    @Volatile
+    private var chatScreenActive = true
+
+    fun setChatScreenActive(active: Boolean) {
+        chatScreenActive = active
+        if (!active) voiceHandler.stopSpeaking()
+    }
+
+    val conversationSummaries: StateFlow<List<ConversationSummary>?> = repository.conversations
         .map { list ->
             list.map { ConversationSummary(it.id, it.title, it.updatedAt, it.pinned) }
         }
@@ -64,7 +72,7 @@ class ChatViewModel(
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.Eagerly,
-            initialValue = emptyList(),
+            initialValue = null,
         )
 
     val savedModels: StateFlow<List<ProviderModelEntity>> = savedModels
@@ -77,7 +85,6 @@ class ChatViewModel(
     val isVoiceInputAvailable: Boolean get() = voiceHandler.isVoiceInputAvailable
     val attachmentSupport: Boolean get() = attachmentIngester != null
     val ttsAvailable: Boolean get() = voiceHandler.ttsAvailable
-    val speakAvailable: Boolean get() = voiceHandler.speakAvailable
 
     init {
         viewModelScope.launch {
@@ -97,7 +104,7 @@ class ChatViewModel(
             repository.uiState.collect { state ->
                 val wasGenerating = previousStatus is ChatStatus.Generating
                 previousStatus = state.status
-                if (wasGenerating && state.status is ChatStatus.Idle) {
+                if (wasGenerating && state.status is ChatStatus.Idle && chatScreenActive) {
                     voiceHandler.speakCompletedAssistantMessage(state)
                 }
             }

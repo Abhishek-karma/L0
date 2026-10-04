@@ -57,7 +57,7 @@ private const val RECENT_COUNT = 8
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(
-    conversations: List<ConversationSummary>,
+    conversations: List<ConversationSummary>?,
     onOpen: (String) -> Unit,
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
@@ -67,9 +67,9 @@ fun SearchScreen(
     val results = remember(conversations, query) {
         val q = query.trim()
         val matches = if (q.isEmpty()) {
-            conversations.take(RECENT_COUNT)
+            conversations.orEmpty().take(RECENT_COUNT)
         } else {
-            conversations.filter { it.title.contains(q, ignoreCase = true) }
+            conversations.orEmpty().filter { it.title.contains(q, ignoreCase = true) }
         }
         matches.map {
             SearchResultItem(

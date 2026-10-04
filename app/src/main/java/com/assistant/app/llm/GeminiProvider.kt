@@ -35,7 +35,7 @@ class GeminiProvider(
         val call = try {
             client.newCall(httpRequest(request))
         } catch (_: IllegalArgumentException) {
-            trySend(ChatChunk.Failure(ProviderError.Unknown))
+            trySend(ChatChunk.Failure(ProviderError.UnsupportedRequest))
             close()
             return@callbackFlow
         }
@@ -311,6 +311,9 @@ class GeminiProvider(
         )
 
     private fun httpRequest(request: ChatRequest): Request {
+        require(request.messages.any { (_, text) -> text.isNotBlank() || request.images.isNotEmpty() }) {
+            "Gemini request had no usable content"
+        }
         val payload = JSONObject()
 
         val systemTexts = request.messages
@@ -379,15 +382,6 @@ class GeminiProvider(
             }
         }
         flushTurn()
-
-        if (contents.length() == 0) {
-            contents.put(
-                JSONObject().apply {
-                    put("role", "user")
-                    put("parts", JSONArray().put(JSONObject().put("text", "Hello")))
-                },
-            )
-        }
 
         payload.put("contents", contents)
 

@@ -4,6 +4,7 @@ import com.assistant.app.data.settings.AppPreferences
 import com.assistant.app.data.update.model.UpdateCheckResult
 import com.assistant.app.data.update.model.UpdateInfo
 import com.assistant.app.data.update.model.UpdateStatus
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,14 +32,24 @@ class UpdateManager(
 
     suspend fun checkForUpdates(manual: Boolean = false): UpdateCheckResult {
         _updateStatus.value = UpdateStatus.Checking
-        val result = updateChecker.checkForUpdate(currentVersion)
+        val result = try {
+            updateChecker.checkForUpdate(currentVersion)
+        } catch (e: CancellationException) {
+            _updateStatus.value = UpdateStatus.Idle
+            throw e
+        } catch (_: Exception) {
+            _updateStatus.value = UpdateStatus.Error("Could not check for updates.")
+            return UpdateCheckResult.Error("Could not check for updates.")
+        }
         when (result) {
             is UpdateCheckResult.Available -> {
                 _updateStatus.value = UpdateStatus.Available(result.updateInfo)
                 val lastNotified = appPreferences.lastNotifiedVersion.first()
                 if (manual || lastNotified != result.updateInfo.latestVersion) {
-                    updateNotifier.showUpdateNotification(result.updateInfo)
-                    appPreferences.setLastNotifiedVersion(result.updateInfo.latestVersion)
+                    val posted = updateNotifier.showUpdateNotification(result.updateInfo)
+                    if (posted) {
+                        appPreferences.setLastNotifiedVersion(result.updateInfo.latestVersion)
+                    }
                 }
             }
             is UpdateCheckResult.UpToDate -> {
@@ -48,7 +59,9 @@ class UpdateManager(
                 _updateStatus.value = UpdateStatus.Error(result.message)
             }
         }
-        appPreferences.setLastUpdateCheckTime(clock())
+        if (result !is UpdateCheckResult.Error) {
+            appPreferences.setLastUpdateCheckTime(clock())
+        }
         return result
     }
 
@@ -63,10 +76,6 @@ class UpdateManager(
                 checkForUpdates(manual = false)
             }
         }
-    }
-
-    fun dismissUpdate() {
-        _updateStatus.value = UpdateStatus.Idle
     }
 
     companion object {

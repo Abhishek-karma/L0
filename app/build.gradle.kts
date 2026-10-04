@@ -30,12 +30,6 @@ android {
     }
 
     signingConfigs {
-        create("debugConfig") {
-            storeFile = file("${rootDir}/debug.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
-        }
         if (keystoreProperties.isNotEmpty()) {
             create("releaseConfig") {
                 storeFile = file(keystoreProperties.getProperty("storeFile"))
@@ -48,7 +42,7 @@ android {
 
     buildTypes {
         debug {
-            signingConfig = signingConfigs.getByName("debugConfig")
+            // AGP's auto-generated debug keystore; no credentials belong in the repo.
         }
         release {
             isMinifyEnabled = true
@@ -224,7 +218,6 @@ dependencies {
 
     implementation(libs.okhttp)
     implementation(libs.androidx.room.runtime)
-    implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.security.crypto)

@@ -1,7 +1,7 @@
 package com.assistant.app.ui.onboarding
-
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -31,6 +30,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,22 +50,19 @@ import com.assistant.app.ui.theme.AppShape
 import com.assistant.app.ui.theme.AppSpacing
 import com.assistant.app.ui.theme.appTween
 import kotlinx.coroutines.launch
-
 private const val PAGE_COUNT = 3
-
 @Composable
 fun OnboardingScreen(
     onDone: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val pagerState = rememberPagerState(pageCount = { PAGE_COUNT })
+    val pageScrollStates = remember { List(PAGE_COUNT) { ScrollState(0) } }
     val scope = rememberCoroutineScope()
     val isLast = pagerState.currentPage == PAGE_COUNT - 1
-
     BackHandler(enabled = pagerState.currentPage > 0) {
         scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) }
     }
-
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -82,7 +79,6 @@ fun OnboardingScreen(
                 .padding(horizontal = AppSpacing.xl, vertical = AppSpacing.md),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -112,7 +108,6 @@ fun OnboardingScreen(
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                 }
-
                 TextButton(
                     onClick = onDone,
                     modifier = Modifier.height(48.dp),
@@ -124,18 +119,16 @@ fun OnboardingScreen(
                     )
                 }
             }
-
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
             ) { page ->
-                OnboardingPage(page = page)
+                OnboardingPage(page = page, scrollState = pageScrollStates[page])
             }
-
             Spacer(Modifier.height(AppSpacing.md))
-
+            val pageLabel = stringResource(R.string.onboarding_page_x_of_y, pagerState.currentPage + 1, PAGE_COUNT)
             Row(
                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
@@ -159,13 +152,11 @@ fun OnboardingScreen(
                                     MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
                                 },
                             )
-                            .semantics { contentDescription = "Page ${index + 1} of $PAGE_COUNT" },
+                            .semantics { contentDescription = pageLabel },
                     )
                 }
             }
-
             Spacer(Modifier.height(AppSpacing.md))
-
             Button(
                 onClick = {
                     if (isLast) {
@@ -191,16 +182,12 @@ fun OnboardingScreen(
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                 )
             }
-
             Spacer(Modifier.height(AppSpacing.xs))
         }
     }
 }
-
 @Composable
-private fun OnboardingPage(page: Int) {
-    val scrollState = rememberScrollState()
-
+private fun OnboardingPage(page: Int, scrollState: ScrollState) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -216,7 +203,6 @@ private fun OnboardingPage(page: Int) {
         }
     }
 }
-
 @Composable
 private fun PageWhatThisAppIs() {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -234,18 +220,14 @@ private fun PageWhatThisAppIs() {
                 modifier = Modifier.size(40.dp),
             )
         }
-
         Spacer(Modifier.height(AppSpacing.xl))
-
         Text(
             text = stringResource(R.string.onboarding_title_1),
             style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurface,
         )
-
         Spacer(Modifier.height(AppSpacing.md))
-
         Text(
             text = stringResource(R.string.onboarding_body_1),
             style = MaterialTheme.typography.bodyLarge,
@@ -253,32 +235,29 @@ private fun PageWhatThisAppIs() {
             textAlign = TextAlign.Center,
             modifier = Modifier.widthIn(max = 460.dp),
         )
-
         Spacer(Modifier.height(AppSpacing.xxl))
-
         Column(
             verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
             modifier = Modifier.widthIn(max = 380.dp),
         ) {
             FeatureRow(
                 icon = AppIcons.Sparkle,
-                title = "OpenAI-Compatible",
-                subtitle = "Works with standard AI providers and endpoints",
+                title = stringResource(R.string.onboarding_feat_providers_title),
+                subtitle = stringResource(R.string.onboarding_feat_providers_subtitle),
             )
             FeatureRow(
                 icon = AppIcons.Info,
-                title = "On-Device Keys",
-                subtitle = "API keys stay encrypted on your phone",
+                title = stringResource(R.string.onboarding_feat_keys_title),
+                subtitle = stringResource(R.string.onboarding_feat_keys_subtitle),
             )
             FeatureRow(
                 icon = AppIcons.Globe,
-                title = "Direct API Calls",
-                subtitle = "No intermediary servers or hidden tracking",
+                title = stringResource(R.string.onboarding_feat_direct_title),
+                subtitle = stringResource(R.string.onboarding_feat_direct_subtitle),
             )
         }
     }
 }
-
 @Composable
 private fun PageWhatYouControl() {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -296,18 +275,14 @@ private fun PageWhatYouControl() {
                 modifier = Modifier.size(36.dp),
             )
         }
-
         Spacer(Modifier.height(AppSpacing.xl))
-
         Text(
             text = stringResource(R.string.onboarding_title_2),
             style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurface,
         )
-
         Spacer(Modifier.height(AppSpacing.md))
-
         Text(
             text = stringResource(R.string.onboarding_body_2),
             style = MaterialTheme.typography.bodyLarge,
@@ -315,32 +290,29 @@ private fun PageWhatYouControl() {
             textAlign = TextAlign.Center,
             modifier = Modifier.widthIn(max = 460.dp),
         )
-
         Spacer(Modifier.height(AppSpacing.xxl))
-
         Column(
             verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
             modifier = Modifier.widthIn(max = 380.dp),
         ) {
             FeatureRow(
                 icon = AppIcons.Palette,
-                title = "Custom Providers",
-                subtitle = "Configure base URLs, custom headers, and models",
+                title = stringResource(R.string.onboarding_feat_custom_title),
+                subtitle = stringResource(R.string.onboarding_feat_custom_subtitle),
             )
             FeatureRow(
                 icon = AppIcons.Brain,
-                title = "Reasoning Visibility",
-                subtitle = "View structured thinking and model search steps",
+                title = stringResource(R.string.onboarding_feat_reasoning_title),
+                subtitle = stringResource(R.string.onboarding_feat_reasoning_subtitle),
             )
             FeatureRow(
                 icon = AppIcons.Globe,
-                title = "Optional Web Search",
-                subtitle = "Ground answers with live web research when enabled",
+                title = stringResource(R.string.onboarding_feat_search_title),
+                subtitle = stringResource(R.string.onboarding_feat_search_subtitle),
             )
         }
     }
 }
-
 @Composable
 private fun PageHowToStartQuickly() {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -358,18 +330,14 @@ private fun PageHowToStartQuickly() {
                 modifier = Modifier.size(36.dp),
             )
         }
-
         Spacer(Modifier.height(AppSpacing.xl))
-
         Text(
             text = stringResource(R.string.onboarding_title_3),
             style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurface,
         )
-
         Spacer(Modifier.height(AppSpacing.md))
-
         Text(
             text = stringResource(R.string.onboarding_body_3),
             style = MaterialTheme.typography.bodyLarge,
@@ -377,9 +345,7 @@ private fun PageHowToStartQuickly() {
             textAlign = TextAlign.Center,
             modifier = Modifier.widthIn(max = 460.dp),
         )
-
         Spacer(Modifier.height(AppSpacing.xxl))
-
         Column(
             verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
             modifier = Modifier.widthIn(max = 380.dp),
@@ -387,27 +353,26 @@ private fun PageHowToStartQuickly() {
             FeatureRow(
                 icon = AppIcons.Chat,
                 title = stringResource(R.string.onboarding_cap_chat),
-                subtitle = "Fast streaming answers with version comparison",
+                subtitle = stringResource(R.string.onboarding_feat_chat_subtitle),
             )
             FeatureRow(
                 icon = AppIcons.Mic,
                 title = stringResource(R.string.onboarding_cap_voice),
-                subtitle = "Hands-free voice input & spoken answers",
+                subtitle = stringResource(R.string.onboarding_feat_voice_subtitle),
             )
             FeatureRow(
                 icon = AppIcons.Image,
                 title = stringResource(R.string.onboarding_cap_images),
-                subtitle = "Camera capture & photo analysis context",
+                subtitle = stringResource(R.string.onboarding_feat_images_subtitle),
             )
             FeatureRow(
                 icon = AppIcons.File,
                 title = stringResource(R.string.onboarding_cap_files),
-                subtitle = "Plain text & document file ingestion",
+                subtitle = stringResource(R.string.onboarding_feat_files_subtitle),
             )
         }
     }
 }
-
 @Composable
 private fun FeatureRow(
     icon: Int,
@@ -433,9 +398,7 @@ private fun FeatureRow(
                 modifier = Modifier.size(20.dp),
             )
         }
-
         Spacer(Modifier.width(AppSpacing.md))
-
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,

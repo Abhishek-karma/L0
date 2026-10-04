@@ -4,7 +4,6 @@ import com.assistant.app.llm.model.ExtractedContent
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
-import org.jsoup.safety.Safelist
 
 interface ContentExtractor {
     fun extract(html: String, url: String): ExtractedContent
@@ -94,7 +93,8 @@ class JsoupContentExtractor(
 
     private fun extractText(element: Element): String {
         val sb = StringBuilder()
-        val elements = element.select("h1, h2, h3, h4, h5, h6, p, li, blockquote, pre, td, th")
+        val matched = element.select("h1, h2, h3, h4, h5, h6, p, li, blockquote, pre, td, th")
+        val elements = matched.filter { el -> el.parents().none { ancestor -> ancestor in matched } }
 
         if (elements.isEmpty()) {
             return cleanWhitespace(element.text())

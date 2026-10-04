@@ -102,8 +102,7 @@ private val DarkColors = darkColorScheme(
     onErrorContainer = Color(0xFFFEE2E2),
 )
 
-private val AppTypography: Typography
-    get() = Typography(
+private val AppTypography = Typography(
         displayLarge = TextStyle(fontFamily = AppFontFamily, fontWeight = FontWeight.Bold, fontSize = 32.sp, lineHeight = 40.sp),
         displayMedium = TextStyle(fontFamily = AppFontFamily, fontWeight = FontWeight.Bold, fontSize = 28.sp, lineHeight = 36.sp),
         displaySmall = TextStyle(fontFamily = AppFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 24.sp, lineHeight = 32.sp),
