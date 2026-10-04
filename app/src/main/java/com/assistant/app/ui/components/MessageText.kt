@@ -91,7 +91,9 @@ fun MessageText(
     val codeBackground = MaterialTheme.colorScheme.surfaceContainerHighest
     val linkColor = MaterialTheme.colorScheme.primary
     val blocks = if (streaming) {
-        streamingBlocks(text, codeBackground, linkColor)
+        streamingBlocks(text, codeBackground, linkColor).map {
+            if (it is MessageBlock.Diagram) MessageBlock.Code(it.code, "mermaid") else it
+        }
     } else {
         remember(text, codeBackground, linkColor) {
             MarkdownParser.parse(text, codeBackground, linkColor)
@@ -260,7 +262,7 @@ private fun CodeBlock(code: String, language: String?, modifier: Modifier = Modi
                     modifier = Modifier.height(32.dp),
                 ) {
                     Text(
-                        text = if (copied) "Copied!" else stringResource(R.string.menu_copy),
+                        text = if (copied) stringResource(R.string.menu_copied) else stringResource(R.string.menu_copy),
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
                         color = if (copied) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                     )

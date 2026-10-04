@@ -74,8 +74,7 @@ class GitHubUpdateChecker(
                             UpdateCheckResult.UpToDate(currentVersion)
                         }
                     }
-                    404 -> UpdateCheckResult.UpToDate(currentVersion)
-                    403 -> UpdateCheckResult.Error("Update check rate limited. Please try again later.")
+                    403, 429 -> UpdateCheckResult.Error("Update check rate limited. Please try again later.")
                     else -> UpdateCheckResult.Error("Update server returned error (${response.code})")
                 }
             }

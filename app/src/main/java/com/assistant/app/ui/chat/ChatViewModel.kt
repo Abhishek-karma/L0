@@ -55,12 +55,6 @@ class ChatViewModel(
 
     val uiState: StateFlow<ChatUiState> = repository.uiState
     val chatLlm: StateFlow<ChatLlmState> = chatLlm
-    val conversations: StateFlow<List<ConversationEntity>> = repository.conversations
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.Eagerly,
-            initialValue = emptyList(),
-        )
 
     val conversationSummaries: StateFlow<List<ConversationSummary>> = repository.conversations
         .map { list ->

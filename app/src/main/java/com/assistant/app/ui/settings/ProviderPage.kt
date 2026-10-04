@@ -245,8 +245,9 @@ internal fun ProviderEditor(
     viewModel: SettingsViewModel,
 ) {
     val context = LocalContext.current
-    val isGeminiProvider = isGemini(state.baseUrl, state.name)
+    val isGeminiProvider = isGemini(state.baseUrl)
     var providerDropdownExpanded by remember { mutableStateOf(false) }
+    var confirmDelete by remember { mutableStateOf<Long?>(null) }
 
     val selectedPreset = presetFor(state.baseUrl, state.name)
     val currentProviderLabel = selectedPreset?.name
@@ -551,8 +552,9 @@ internal fun ProviderEditor(
                 Text(stringResource(R.string.settings_cancel))
             }
             if (state.editingId != null) {
+                val editingId = state.editingId
                 TextButton(
-                    onClick = { viewModel.delete(state.editingId) },
+                    onClick = { confirmDelete = editingId },
                     enabled = !state.isSaving,
                     modifier = Modifier.heightIn(min = 48.dp),
                 ) {
@@ -563,5 +565,38 @@ internal fun ProviderEditor(
                 }
             }
         }
+    }
+
+    confirmDelete?.let { targetId ->
+        AlertDialog(
+            onDismissRequest = { confirmDelete = null },
+            title = { Text(stringResource(R.string.settings_delete_provider_title)) },
+            text = {
+                Text(
+                    stringResource(
+                        R.string.settings_delete_provider_message,
+                        state.name.ifBlank { stringResource(R.string.settings_provider_custom) },
+                    ),
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmDelete = null
+                        viewModel.delete(targetId)
+                    },
+                ) {
+                    Text(
+                        text = stringResource(R.string.settings_delete),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDelete = null }) {
+                    Text(stringResource(R.string.settings_cancel))
+                }
+            },
+        )
     }
 }

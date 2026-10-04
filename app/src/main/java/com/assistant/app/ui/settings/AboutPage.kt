@@ -202,7 +202,7 @@ internal fun AboutPage(
                         val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(targetUrl)).apply {
                             flags = Intent.FLAG_ACTIVITY_NEW_TASK
                         }
-                        context.startActivity(browserIntent)
+                        runCatching { context.startActivity(browserIntent) }
                         onDismissUpdateDialog()
                     },
                     shape = AppShape.pill,

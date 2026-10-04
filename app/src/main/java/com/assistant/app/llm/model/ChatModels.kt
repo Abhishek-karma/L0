@@ -55,7 +55,7 @@ enum class ProviderError(val userMessage: String) {
     RateLimited("Rate limited"),
     NetworkUnavailable("Network unavailable"),
     Timeout("Request timed out"),
-    ServerError("Gemini service error"),
+    ServerError("Provider error"),
     UnsupportedRequest("Unsupported request"),
     InvalidResponse("Malformed response"),
     Unknown("Something went wrong"),

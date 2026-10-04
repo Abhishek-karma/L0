@@ -3,28 +3,45 @@ package com.assistant.app.ui.settings
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.assistant.app.R
 import com.assistant.app.ui.theme.AppCodeFontFamily
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 private const val LICENSES_ASSET = "licenses.txt"
 
 @Composable
 internal fun LicensesPage() {
     val context = LocalContext.current
-    val text = remember {
-        runCatching {
-            context.assets.open(LICENSES_ASSET).bufferedReader().use { it.readText() }
-        }.getOrNull()
+    val assets = context.assets
+    val entries by produceState<Pair<Boolean, List<LibraryLicense>>>(initialValue = false to emptyList()) {
+        val loaded = withContext(Dispatchers.IO) {
+            runCatching {
+                val raw = assets.open(LICENSES_ASSET).bufferedReader().use { it.readText() }
+                true to LibraryLicenses.parse(raw)
+            }.getOrDefault(true to emptyList())
+        }
+        value = loaded
     }
     Text(
         text = stringResource(R.string.licenses_intro),
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
-    if (text == null) {
+    if (!entries.first) {
+        Text(
+            text = stringResource(R.string.licenses_loading),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        return
+    }
+    val libraries = entries.second
+    if (libraries.isEmpty()) {
         Text(
             text = stringResource(R.string.licenses_unavailable),
             style = MaterialTheme.typography.bodyMedium,
@@ -32,13 +49,12 @@ internal fun LicensesPage() {
         )
         return
     }
-    val entries = remember(text) { LibraryLicenses.parse(text) }
     Text(
-        text = stringResource(R.string.licenses_count, entries.size),
+        text = stringResource(R.string.licenses_count, libraries.size),
         style = MaterialTheme.typography.labelMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
-    entries.forEach { entry ->
+    libraries.forEach { entry ->
         SettingsSectionHeader(text = entry.name)
         if (entry.license.isNotEmpty()) {
             Text(

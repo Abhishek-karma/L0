@@ -114,7 +114,7 @@ private fun TopBarChip(
         onClick = onClick,
         shape = AppShape.pill,
         color = MaterialTheme.colorScheme.surfaceContainerLow,
-        modifier = Modifier.size(36.dp),
+        modifier = Modifier.size(48.dp),
     ) {
         Box(contentAlignment = Alignment.Center) {
             Icon(

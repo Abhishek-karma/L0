@@ -132,6 +132,9 @@ class HttpPageFetcher(
             if (a == 192 && b == 168) return true
             if (a == 172 && b in 16..31) return true
             if (a == 169 && b == 254) return true
+            if (a == 100 && b in 64..127) return true
+            if (a == 198 && b in 18..19) return true
+            if (a >= 224) return true
         }
         if (h.startsWith("fc") || h.startsWith("fd") || h.startsWith("fe80:")) return true
         return false

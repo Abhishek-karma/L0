@@ -209,8 +209,8 @@ interface MessageDao {
     @Insert
     suspend fun insert(message: MessageEntity)
 
-    @Query("UPDATE messages SET content = :content, reasoning = :reasoning WHERE id = :id")
-    suspend fun updateContent(id: String, content: String, reasoning: String)
+    @Query("UPDATE messages SET content = :content, reasoning = COALESCE(:reasoning, reasoning) WHERE id = :id")
+    suspend fun updateContent(id: String, content: String, reasoning: String?)
 
     @Query("UPDATE messages SET selectedVersion = :index WHERE id = :id")
     suspend fun updateSelectedVersion(id: String, index: Int)
@@ -234,14 +234,14 @@ interface MessageDao {
 
     @Query(
         "DELETE FROM messages WHERE conversationId = :conversationId " +
-            "AND rowid >= (SELECT rowid FROM messages WHERE id = :messageId)",
+            "AND rowid >= (SELECT rowid FROM messages WHERE id = :messageId AND conversationId = :conversationId)",
     )
     suspend fun deleteFrom(messageId: String, conversationId: String)
 
     @Query(
         "DELETE FROM message_versions WHERE messageId IN (SELECT id FROM messages " +
             "WHERE conversationId = :conversationId " +
-            "AND rowid >= (SELECT rowid FROM messages WHERE id = :messageId))",
+            "AND rowid >= (SELECT rowid FROM messages WHERE id = :messageId AND conversationId = :conversationId))",
     )
     suspend fun deleteVersionsFrom(messageId: String, conversationId: String)
 
@@ -267,7 +267,7 @@ interface AttachmentDao {
     @Query(
         "SELECT * FROM attachments WHERE messageId IN (SELECT id FROM messages " +
             "WHERE conversationId = :conversationId " +
-            "AND rowid >= (SELECT rowid FROM messages WHERE id = :messageId))",
+            "AND rowid >= (SELECT rowid FROM messages WHERE id = :messageId AND conversationId = :conversationId))",
     )
     suspend fun forMessagesFrom(messageId: String, conversationId: String): List<AttachmentEntity>
 
@@ -277,7 +277,7 @@ interface AttachmentDao {
     @Query(
         "DELETE FROM attachments WHERE messageId IN (SELECT id FROM messages " +
             "WHERE conversationId = :conversationId " +
-            "AND rowid >= (SELECT rowid FROM messages WHERE id = :messageId))",
+            "AND rowid >= (SELECT rowid FROM messages WHERE id = :messageId AND conversationId = :conversationId))",
     )
     suspend fun deleteFrom(messageId: String, conversationId: String)
 

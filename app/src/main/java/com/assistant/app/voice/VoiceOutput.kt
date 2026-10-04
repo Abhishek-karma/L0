@@ -78,6 +78,9 @@ class AndroidVoiceOutput(context: Context) : VoiceOutput.Engine {
 
     private var playingDone: (() -> Unit)? = null
 
+    @Volatile
+    private var pending: PendingUtterance? = null
+
     private var boundEngine: String? = null
 
     private var fellBackToDefault = false
@@ -106,13 +109,29 @@ class AndroidVoiceOutput(context: Context) : VoiceOutput.Engine {
             onDone()
             return
         }
-        if (tts == null) bind()
         val engine = tts
         if (engine == null || ready != true) {
-
-            onDone()
+            pending = PendingUtterance(text, speechRate, voiceId)
+            playingDone = onDone
+            bind()
             return
         }
+        play(engine, text, speechRate, voiceId, onDone)
+    }
+
+    override fun stop() {
+        playingDone = null
+        pending = null
+        tts?.stop()
+    }
+
+    private fun play(
+        engine: TextToSpeech,
+        text: String,
+        speechRate: Float,
+        voiceId: String?,
+        onDone: () -> Unit,
+    ) {
         playingDone = onDone
         applyVoice(engine, voiceId)
         val id = utteranceIds.incrementAndGet().toString()
@@ -122,11 +141,6 @@ class AndroidVoiceOutput(context: Context) : VoiceOutput.Engine {
             playingDone = null
             onDone()
         }
-    }
-
-    override fun stop() {
-        playingDone = null
-        tts?.stop()
     }
 
     private fun applyVoice(engine: TextToSpeech, voiceId: String?) {
@@ -196,6 +210,13 @@ class AndroidVoiceOutput(context: Context) : VoiceOutput.Engine {
             return
         }
         ready = true
+        val queued = pending
+        pending = null
+        if (queued != null) {
+            val done = playingDone ?: {}
+            playingDone = null
+            play(engine, queued.text, queued.speechRate, queued.voiceId, done)
+        }
         onInit?.invoke(engine)
     }
 
@@ -234,3 +255,9 @@ class AndroidVoiceOutput(context: Context) : VoiceOutput.Engine {
         const val GOOGLE_TTS_PACKAGE = "com.google.android.tts"
     }
 }
+
+private class PendingUtterance(
+    val text: String,
+    val speechRate: Float,
+    val voiceId: String?,
+)

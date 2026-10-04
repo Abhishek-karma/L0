@@ -17,6 +17,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.Density
@@ -64,12 +65,14 @@ class MainActivity : ComponentActivity() {
             ChatTheme(darkTheme = darkTheme) {
 
                 val density = LocalDensity.current
+                val chatFactory = remember(container) { container.chatViewModelFactory() }
+                val settingsFactory = remember(container) { container.settingsViewModelFactory() }
                 CompositionLocalProvider(
                     LocalDensity provides Density(density.density, density.fontScale * textSize.scale),
                 ) {
                     AssistantNavHost(
-                        chatViewModelFactory = container.chatViewModelFactory(),
-                        settingsViewModelFactory = container.settingsViewModelFactory(),
+                        chatViewModelFactory = chatFactory,
+                        settingsViewModelFactory = settingsFactory,
                         appPreferences = container.appPreferences,
                     )
                 }

@@ -56,19 +56,17 @@ class AnswerVersionStore(
     ): Boolean {
         val versions = versionCache.versionsOf(messageId) ?: return false
         if (index !in versions.indices) return false
-        val current = versionCache.versionsOf(messageId).orEmpty()
-        if (index !in current.indices) return false
 
         updateMessages { currentMessages ->
             currentMessages.map { m ->
                 if (m.id == messageId && m.role == Role.ASSISTANT) {
-                    m.copy(content = current[index], selectedVersion = index, reasoning = "")
+                    m.copy(content = versions[index], selectedVersion = index)
                 } else {
                     m
                 }
             }
         }
-        store?.updateMessageContent(messageId, current[index], "", clock())
+        store?.updateMessageContent(messageId, versions[index], null, clock())
         store?.updateSelectedVersion(messageId, index)
         return true
     }

@@ -63,9 +63,12 @@ class ChatRepository(
     private val versionStore = AnswerVersionStore(store, clock)
     private val generationController = GenerationController(generationDispatcher, clock)
 
+    @Volatile
     private var failedAssistantId: String? = null
 
+    @Volatile
     private var followUpJob: Job? = null
+    @Volatile
     private var turnJob: Job? = null
 
     /**
@@ -79,6 +82,7 @@ class ChatRepository(
         followUpJob = null
     }
 
+    @Volatile
     private var searching = false
 
     private val conversationSnapshots = LinkedHashMap<String, List<UiMessage>>()
@@ -792,6 +796,35 @@ class ChatRepository(
         targetConversationId: String,
         displayName: String,
     ) {
+        val versions = versionStore.versionsOf(assistantId)
+        val restore = versions?.lastOrNull()
+        if (restore != null && _uiState.value.conversationId == targetConversationId) {
+            val selected = versions.lastIndex
+            _uiState.update { state ->
+                state.copy(
+                    messages = state.messages.map { m ->
+                        if (m.id == assistantId) {
+                            m.copy(
+                                content = restore,
+                                followUps = emptyList(),
+                                versions = versions,
+                                selectedVersion = selected,
+                            )
+                        } else {
+                            m
+                        }
+                    },
+                    status = ChatStatus.Error(attachmentUnreadableMessage(displayName)),
+                )
+            }
+            store?.let { s ->
+                s.updateMessageContent(assistantId, restore, null, now())
+                s.updateSelectedVersion(assistantId, selected)
+                s.updateFollowUps(assistantId, null)
+            }
+            failedAssistantId = null
+            return
+        }
         if (_uiState.value.conversationId == targetConversationId) {
             _uiState.update { state ->
                 state.copy(
@@ -847,7 +880,7 @@ class ChatRepository(
 
     private fun dataUrl(path: String): String? {
         val file = File(path)
-        if (!file.exists()) return "data:image/jpeg;base64,"
+        if (!file.exists()) return null
         return try {
             if (file.length() > MAX_PROCESSED_IMAGE_BYTES) return null
             val bytes = file.readBytes()

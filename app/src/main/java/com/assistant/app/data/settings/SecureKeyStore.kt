@@ -14,7 +14,7 @@ interface SecureKeyStore {
 
     fun apiKey(id: Long): String?
 
-    fun setApiKey(id: Long, value: String?)
+    fun setApiKey(id: Long, value: String?): Boolean
 
     fun legacyApiKey(): String?
 
@@ -32,11 +32,12 @@ class EncryptedSecureKeyStore(context: Context) : SecureKeyStore {
     override fun apiKey(id: Long): String? = preferences?.getString(keyFor(id), null)
 
     @SuppressLint("ApplySharedPref")
-    override fun setApiKey(id: Long, value: String?) {
-        val prefs = preferences ?: return
+    override fun setApiKey(id: Long, value: String?): Boolean {
+        val prefs = preferences ?: return false
         prefs.edit().apply {
             if (value == null) remove(keyFor(id)) else putString(keyFor(id), value)
         }.commit()
+        return true
     }
 
     override fun legacyApiKey(): String? = preferences?.getString(KEY_API_KEY, null)

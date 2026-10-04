@@ -101,12 +101,12 @@ class UpdateCheckerTest {
     }
 
     @Test
-    fun `when 404 returned returns UpToDate`() {
+    fun `when 404 returned returns Error`() {
         server.enqueue(MockResponse().setResponseCode(404))
 
         val result = runBlocking { checker().checkForUpdate(currentVersion = "1.0.0") }
 
-        assertTrue(result is UpdateCheckResult.UpToDate)
+        assertTrue(result is UpdateCheckResult.Error)
     }
 
     @Test

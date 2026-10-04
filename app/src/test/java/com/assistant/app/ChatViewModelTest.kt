@@ -24,6 +24,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import java.io.File
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -351,15 +352,19 @@ class ChatViewModelTest {
     fun `send with staged attachments and blank draft is allowed`() = runChatTest(
         script = listOf(ScriptedEvent.Emit("I see it")),
     ) { viewModel, _, repository ->
+        val stagedFile = File.createTempFile("staged", ".txt").apply {
+            deleteOnExit()
+            writeText("notes")
+        }
         repository.addPendingAttachments(
             listOf(
                 com.assistant.app.llm.model.UiAttachment(
                     id = "a1",
-                    kind = com.assistant.app.llm.model.UiAttachment.Kind.IMAGE,
-                    displayName = "i.jpg",
-                    mime = "image/jpeg",
-                    path = "/nonexistent",
-                    sizeBytes = 1,
+                    kind = com.assistant.app.llm.model.UiAttachment.Kind.TEXT,
+                    displayName = "notes.txt",
+                    mime = "text/plain",
+                    path = stagedFile.absolutePath,
+                    sizeBytes = 5,
                 ),
             ),
         )
@@ -646,6 +651,10 @@ class ChatViewModelTest {
     fun `staged attachments do not cross conversation boundaries`() = runChatTest(
         script = listOf(ScriptedEvent.Emit("Hello")),
     ) { viewModel, _, repository ->
+        val imageFile = File.createTempFile("staged", ".jpg").apply {
+            deleteOnExit()
+            writeBytes(byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte(), 0xD9.toByte()))
+        }
         repository.addPendingAttachments(
             listOf(
                 com.assistant.app.llm.model.UiAttachment(
@@ -653,7 +662,7 @@ class ChatViewModelTest {
                     kind = com.assistant.app.llm.model.UiAttachment.Kind.IMAGE,
                     displayName = "i.jpg",
                     mime = "image/jpeg",
-                    path = "/nonexistent",
+                    path = imageFile.absolutePath,
                     sizeBytes = 1,
                 ),
             ),

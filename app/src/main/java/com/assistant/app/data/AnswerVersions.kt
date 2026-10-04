@@ -8,7 +8,7 @@ class AnswerVersions {
 
     fun append(messageId: String, content: String): Boolean {
         val versions = cache.getOrPut(messageId) { mutableListOf() }
-        if (versions.lastOrNull() == content) return false
+        if (versions.any { it == content }) return false
         versions.add(content)
         return true
     }

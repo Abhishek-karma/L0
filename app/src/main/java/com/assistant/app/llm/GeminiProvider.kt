@@ -176,18 +176,20 @@ class GeminiProvider(
         } else {
             val candidates = root.optJSONArray("candidates")
             if (candidates == null || candidates.length() == 0) {
-                emptyList()
+                blockedOrEmpty(root) ?: emptyList()
             } else {
                 buildList {
                     val candidate = candidates.getJSONObject(0)
                     val content = candidate.optJSONObject("content")
                     val parts = content?.optJSONArray("parts")
+                    var textParts = 0
                     if (parts != null) {
                         for (i in 0 until parts.length()) {
                             val part = parts.optJSONObject(i) ?: continue
-                            val isThought = part.optBoolean("thought", false) || part.has("thought")
+                            val isThought = part.optBoolean("thought", false)
                             val text = part.optString("text")
                             if (text.isNotEmpty()) {
+                                textParts++
                                 if (isThought) {
                                     add(ChatChunk.Reasoning(text))
                                 } else {
@@ -196,11 +198,26 @@ class GeminiProvider(
                             }
                         }
                     }
+                    if (textParts == 0) {
+                        blockedOrEmpty(root)?.let { chunks -> chunks.forEach { add(it) } }
+                    }
                 }
             }
         }
     } catch (_: JSONException) {
         null
+    }
+
+    private fun blockedOrEmpty(root: JSONObject): List<ChatChunk>? {
+        val blockReason = root.optJSONObject("promptFeedback")?.optString("blockReason").orEmpty()
+        if (blockReason.isNotBlank()) {
+            return listOf(ChatChunk.Failure(ProviderError.UnsupportedRequest, "Blocked: $blockReason"))
+        }
+        val candidates = root.optJSONArray("candidates") ?: return null
+        if (candidates.length() == 0) return null
+        val finishReason = candidates.optJSONObject(0)?.optString("finishReason").orEmpty()
+        if (finishReason.lowercase() !in BLOCKED_FINISH_REASONS) return null
+        return listOf(ChatChunk.Failure(ProviderError.UnsupportedRequest, "Stopped: $finishReason"))
     }
 
     private fun readLine(source: BufferedSource): SseLine {
@@ -419,5 +436,14 @@ class GeminiProvider(
         private const val MIN_THINKING_BUDGET = 1
         private const val MAX_THINKING_BUDGET = 32768
         private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
+
+        private val BLOCKED_FINISH_REASONS = setOf(
+            "safety",
+            "recitation",
+            "blocklist",
+            "prohibited_content",
+            "spii",
+            "image_safety",
+        )
     }
 }

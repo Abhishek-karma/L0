@@ -13,7 +13,9 @@ data class SemanticVersion(
         if (patch != other.patch) return patch.compareTo(other.patch)
         if (preRelease == null && other.preRelease != null) return 1
         if (preRelease != null && other.preRelease == null) return -1
-        if (preRelease != null && other.preRelease != null) return preRelease.compareTo(other.preRelease)
+        if (preRelease != null && other.preRelease != null) {
+            return comparePreRelease(preRelease, other.preRelease)
+        }
         return 0
     }
 
@@ -21,7 +23,8 @@ data class SemanticVersion(
         fun parse(version: String): SemanticVersion? {
             val trimmed = version.trim().removePrefix("v").removePrefix("V")
             if (trimmed.isEmpty()) return null
-            val hyphenSplit = trimmed.split('-', limit = 2)
+            val withoutBuild = trimmed.substringBefore('+')
+            val hyphenSplit = withoutBuild.split('-', limit = 2)
             val versionNumbers = hyphenSplit[0].split('.')
             val major = versionNumbers.getOrNull(0)?.toIntOrNull() ?: return null
             val minor = versionNumbers.getOrNull(1)?.toIntOrNull() ?: 0
@@ -36,4 +39,23 @@ data class SemanticVersion(
             return latestParsed > currentParsed
         }
     }
+}
+
+private fun comparePreRelease(left: String, right: String): Int {
+    val leftIds = left.split('.')
+    val rightIds = right.split('.')
+    for (i in 0 until maxOf(leftIds.size, rightIds.size)) {
+        val l = leftIds.getOrNull(i) ?: return -1
+        val r = rightIds.getOrNull(i) ?: return 1
+        val lNum = l.toIntOrNull()
+        val rNum = r.toIntOrNull()
+        val cmp = when {
+            lNum != null && rNum != null -> lNum.compareTo(rNum)
+            lNum != null -> -1
+            rNum != null -> 1
+            else -> l.compareTo(r)
+        }
+        if (cmp != 0) return cmp
+    }
+    return 0
 }

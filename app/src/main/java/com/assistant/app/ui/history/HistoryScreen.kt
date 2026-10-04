@@ -117,9 +117,11 @@ fun HistoryScreen(
             val intent = Intent(Intent.ACTION_SEND)
                 .setType("text/plain")
                 .putExtra(Intent.EXTRA_TEXT, text)
-            context.startActivity(
-                Intent.createChooser(intent, context.getString(R.string.cd_share_conversation)),
-            )
+            runCatching {
+                context.startActivity(
+                    Intent.createChooser(intent, context.getString(R.string.cd_share_conversation)),
+                )
+            }
         }
     }
 

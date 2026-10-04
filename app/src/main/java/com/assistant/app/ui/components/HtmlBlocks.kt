@@ -38,6 +38,8 @@ private const val ASSET_URL_PREFIX = "file:///android_asset"
 
 private const val FILE_SCHEME = "file"
 
+private const val MAX_BLOCK_HEIGHT_PX = 4000
+
 private const val REPORT_JS =
     "function report(){var c=document.getElementById('c');if(c&&window.Android){" +
         "var r=c.getBoundingClientRect();if(r.height>0)Android.setHeight(r.height);}}" +
@@ -80,7 +82,7 @@ fun DiagramBlock(code: String, modifier: Modifier = Modifier) {
                 modifier = Modifier.clickable { viewerOpen = true },
             )
             Text(
-                text = "mermaid",
+                text = stringResource(R.string.diagram_label),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
@@ -141,7 +143,7 @@ private fun RichBlockWebView(html: String, modifier: Modifier = Modifier) {
                             @JavascriptInterface
                             fun setHeight(height: Float) {
 
-                                post { contentHeight = ceil(height).toInt() }
+                                post { contentHeight = ceil(height).toInt().coerceIn(0, MAX_BLOCK_HEIGHT_PX) }
                             }
                         },
                         "Android",

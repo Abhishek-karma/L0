@@ -71,6 +71,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -128,6 +129,7 @@ fun ChatScreen(
     val chatLlmState by viewModel.chatLlm.collectAsState()
     val reasoningVisible by viewModel.reasoningVisible.collectAsState()
     var editingMessageId by remember { mutableStateOf<String?>(null) }
+    var draftBeforeEdit by remember { mutableStateOf("") }
     var showMicRationale by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
@@ -162,15 +164,15 @@ fun ChatScreen(
     ) { uri ->
         if (uri != null) viewModel.addTextAttachment(uri)
     }
-    var cameraTarget by remember { mutableStateOf<Uri?>(null) }
-    var cameraFile by remember { mutableStateOf<File?>(null) }
+    var cameraTarget by rememberSaveable { mutableStateOf<String?>(null) }
+    var cameraFilePath by rememberSaveable { mutableStateOf<String?>(null) }
     val cameraLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicture(),
     ) { captured ->
-        val target = cameraTarget
-        val file = cameraFile
+        val target = cameraTarget?.let(Uri::parse)
+        val file = cameraFilePath?.let(::File)
         cameraTarget = null
-        cameraFile = null
+        cameraFilePath = null
         if (captured && target != null) {
             viewModel.addImageAttachments(listOf(target))
         } else {
@@ -178,18 +180,18 @@ fun ChatScreen(
         }
     }
     val launchCamera: () -> Unit = {
-        cameraFile?.delete()
+        cameraFilePath?.let { File(it).delete() }
         val file = File(
             context.cacheDir,
             "camera/IMG_${System.currentTimeMillis()}.jpg",
         ).apply { parentFile?.mkdirs() }
         val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-        cameraTarget = uri
-        cameraFile = file
+        cameraTarget = uri.toString()
+        cameraFilePath = file.absolutePath
         cameraLauncher.launch(uri)
     }
     DisposableEffect(Unit) {
-        onDispose { cameraFile?.delete() }
+        onDispose { cameraFilePath?.let { File(it).delete() } }
     }
 
     val attachActions = if (viewModel.attachmentSupport) {
@@ -317,18 +319,29 @@ fun ChatScreen(
                                 Box(
                                     modifier = Modifier
                                         .align(Alignment.TopEnd)
-                                        .padding(4.dp)
-                                        .size(20.dp)
-                                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f), CircleShape)
-                                        .clickable { viewModel.removePendingAttachment(attachment.id) },
-                                    contentAlignment = Alignment.Center
+                                        .size(48.dp)
+                                        .clickable(
+                                            onClickLabel = stringResource(R.string.cd_remove_attachment),
+                                        ) { viewModel.removePendingAttachment(attachment.id) },
+                                    contentAlignment = Alignment.TopEnd,
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Filled.Close,
-                                        contentDescription = stringResource(R.string.cd_remove_attachment),
-                                        tint = MaterialTheme.colorScheme.onSurface,
-                                        modifier = Modifier.size(12.dp)
-                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .padding(4.dp)
+                                            .size(20.dp)
+                                            .background(
+                                                MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+                                                CircleShape,
+                                            ),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Filled.Close,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurface,
+                                            modifier = Modifier.size(12.dp),
+                                        )
+                                    }
                                 }
                             }
                         } else {
@@ -433,6 +446,7 @@ fun ChatScreen(
                 thinkCapability = state.thinkCapability,
                 thinkConfig = state.thinkConfig,
                 onThinkSelect = viewModel::setThinkConfig,
+                hasAttachments = state.pendingAttachments.isNotEmpty(),
                 topPadding = if (suggestions.isNotEmpty()) AppSpacing.xxs else AppSpacing.sm,
             )
         }
@@ -515,6 +529,7 @@ fun ChatScreen(
                                 status = state.status,
                                 onRegenerate = viewModel::regenerate,
                                 onEditAndResend = { messageId, content ->
+                                    draftBeforeEdit = state.draft
                                     editingMessageId = messageId
                                     viewModel.setDraft(content)
                                 },
@@ -546,7 +561,7 @@ fun ChatScreen(
                                     modifier = Modifier
                                         .align(Alignment.BottomEnd)
                                         .padding(AppSpacing.lg)
-                                        .size(44.dp)
+                                        .size(48.dp)
                                         .graphicsLayer {
                                             alpha = fabAlpha
                                             val scale = 0.85f + 0.15f * fabAlpha
@@ -594,7 +609,8 @@ fun ChatScreen(
                                 EditBanner(
                                     onCancel = {
                                         editingMessageId = null
-                                        viewModel.setDraft("")
+                                        viewModel.setDraft(draftBeforeEdit)
+                                        draftBeforeEdit = ""
                                     },
                                 )
                             }

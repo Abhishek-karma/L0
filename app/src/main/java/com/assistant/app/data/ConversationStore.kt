@@ -26,7 +26,7 @@ class ConversationStore(private val db: ChatDatabase) {
         db.messageDao().insert(message)
     }
 
-    suspend fun updateMessageContent(id: String, content: String, reasoning: String, updatedAt: Long) {
+    suspend fun updateMessageContent(id: String, content: String, reasoning: String?, updatedAt: Long) {
         db.withTransaction {
             db.messageDao().updateContent(id, content, reasoning)
             db.conversationDao().touchConversationOf(id, updatedAt)

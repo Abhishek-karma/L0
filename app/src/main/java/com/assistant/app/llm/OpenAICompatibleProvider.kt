@@ -133,9 +133,10 @@ class OpenAICompatibleProvider(
             when (val read = readLine(source)) {
                 SseLine.Eof -> break
                 SseLine.Overlong -> {
-
-                    settle(ChatChunk.Failure(ProviderError.InvalidResponse))
-                    return
+                    if (!discardRestOfLine(source)) {
+                        settle(ChatChunk.Failure(ProviderError.InvalidResponse))
+                        return
+                    }
                 }
                 is SseLine.Line -> {
                     for (event in parser.parseSse("${read.text}\n")) {
@@ -179,6 +180,21 @@ class OpenAICompatibleProvider(
                 return if (line.isEmpty()) SseLine.Eof else SseLine.Line(line)
             }
         }
+    }
+
+    private fun discardRestOfLine(source: BufferedSource): Boolean {
+        var skipped = 0L
+        while (skipped < MAX_SKIPPED_LINE_BYTES) {
+            val newline = source.buffer.indexOf('\n'.code.toByte())
+            if (newline != -1L) {
+                source.skip(newline + 1)
+                return true
+            }
+            skipped += source.buffer.size
+            source.buffer.clear()
+            if (!source.request(1)) return true
+        }
+        return false
     }
 
     private fun deltasOf(data: String): List<ChatChunk>? = try {
@@ -286,6 +302,8 @@ class OpenAICompatibleProvider(
         const val MAX_ERROR_BODY_BYTES = 64L * 1024
 
         const val MAX_LINE_BYTES = 64L * 1024
+
+        private const val MAX_SKIPPED_LINE_BYTES = 4L * 1024 * 1024
 
         val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
     }

@@ -132,6 +132,7 @@ fun Composer(
     thinkCapability: ThinkCapability = ThinkCapability.Unsupported,
     thinkConfig: ReasoningConfig = ReasoningConfig.Auto,
     onThinkSelect: (ReasoningConfig) -> Unit = {},
+    hasAttachments: Boolean = false,
     topPadding: androidx.compose.ui.unit.Dp = AppSpacing.sm,
 ) {
     val haptics = rememberHaptics()
@@ -261,7 +262,7 @@ fun Composer(
                                 )
                                 Spacer(Modifier.width(AppSpacing.xs))
                                 Text(
-                                    text = "Search",
+                                    text = stringResource(R.string.composer_search_toggle),
                                     style = MaterialTheme.typography.labelMedium.copy(
                                         color = if (searchActive) {
                                             MaterialTheme.colorScheme.primary
@@ -342,7 +343,7 @@ fun Composer(
 
                     SendButton(
                         isGenerating = isGenerating,
-                        enabled = isGenerating || isNotBlank,
+                        enabled = isGenerating || isNotBlank || hasAttachments,
                         onSend = onSend,
                         onStop = onStop,
                     )

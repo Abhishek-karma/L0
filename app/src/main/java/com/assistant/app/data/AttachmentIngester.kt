@@ -12,6 +12,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
 import java.util.UUID
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -66,17 +67,27 @@ class AttachmentIngester(
     }
 
     suspend fun sweepOrphans(referencedPaths: suspend () -> Set<String>) = withContext(ioDispatcher) {
-        runCatching {
+        try {
             val referenced = referencedPaths()
             attachmentsDir.listFiles()?.forEach { file ->
                 if (file.absolutePath !in referenced) {
                     runCatching { file.delete() }
                 }
             }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            Unit
         }
     }
 
-    internal fun storeImage(stream: InputStream, displayName: String): IngestResult {
+    internal fun storeImage(stream: InputStream, displayName: String): IngestResult = try {
+        storeDecodedImage(stream, displayName)
+    } catch (_: OutOfMemoryError) {
+        IngestResult.Failure(IMAGE_TOO_LARGE_MESSAGE)
+    }
+
+    private fun storeDecodedImage(stream: InputStream, displayName: String): IngestResult {
 
         val bytes = stream.readBounded(MAX_SOURCE_IMAGE_BYTES)
             ?: return IngestResult.Failure(IMAGE_TOO_LARGE_MESSAGE)
@@ -197,9 +208,7 @@ class AttachmentIngester(
 
         private fun sampleSize(width: Int, height: Int, target: Int): Int {
             var sample = 1
-            while (width / (sample
- * 2) >= target && height / (sample
- * 2) >= target) sample *= 2
+            while (width / (sample * 2) >= target || height / (sample * 2) >= target) sample *= 2
             return sample
         }
 

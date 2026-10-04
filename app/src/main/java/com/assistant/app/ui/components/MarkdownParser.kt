@@ -51,7 +51,7 @@ object MarkdownParser {
         while (index < len) {
 
             val fenceCode = findLineAnchoredFence(text, index, CODE_FENCE)
-            val fenceLatex = findLineAnchoredFence(text, index, LATEX_FENCE)
+            val fenceLatex = findLineAnchoredFence(text, index, LATEX_FENCE, aloneOnLine = true)
 
             if (fenceCode != null && (fenceLatex == null || fenceCode.first < fenceLatex.first)) {
 
@@ -87,7 +87,7 @@ object MarkdownParser {
                 val lineEnd = text.indexOf('\n', fenceStart)
                 val contentStart = if (lineEnd == -1) len else lineEnd + 1
 
-                val closing = findLineAnchoredFence(text, contentStart, LATEX_FENCE)
+                val closing = findLineAnchoredFence(text, contentStart, LATEX_FENCE, aloneOnLine = true)
                 if (closing == null) {
                     val formula = text.substring(contentStart).trim()
                     if (formula.isNotEmpty()) {
@@ -119,7 +119,12 @@ object MarkdownParser {
         else -> MessageBlock.Code(code, language.takeIf { it.isNotBlank() })
     }
 
-    private fun findLineAnchoredFence(text: String, from: Int, fence: String): Pair<Int, Int>? {
+    private fun findLineAnchoredFence(
+        text: String,
+        from: Int,
+        fence: String,
+        aloneOnLine: Boolean = false,
+    ): Pair<Int, Int>? {
         var search = from
         val len = text.length
         val fenceLen = fence.length
@@ -134,7 +139,10 @@ object MarkdownParser {
 
                 val nextCharIdx = candidate + fenceLen
                 val isExact = nextCharIdx >= len || text[nextCharIdx] != fence[0]
-                if (isExact) {
+                val alone = nextCharIdx >= len ||
+                    text.substring(nextCharIdx).takeWhile { it == ' ' || it == '\t' }
+                        .let { rest -> rest.isEmpty() || rest.first() == '\n' }
+                if (isExact && (!aloneOnLine || alone)) {
                     return lineStart to indent
                 }
             }

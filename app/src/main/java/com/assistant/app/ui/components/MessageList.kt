@@ -376,54 +376,6 @@ private fun MessageItem(
     }
 }
 
-@Composable
-private fun ErrorMessageBanner(
-    message: String,
-    onRetry: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        shape = AppShape.medium,
-        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.25f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.3f)),
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = AppSpacing.md, vertical = AppSpacing.sm),
-        ) {
-            Icon(
-                painter = painterResource(AppIcons.Error),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.error,
-                modifier = Modifier.size(18.dp),
-            )
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onErrorContainer,
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = AppSpacing.sm),
-            )
-            Button(
-                onClick = onRetry,
-                shape = AppShape.pill,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error,
-                    contentColor = MaterialTheme.colorScheme.onError,
-                ),
-                contentPadding = PaddingValues(horizontal = AppSpacing.md, vertical = 0.dp),
-                modifier = Modifier.height(36.dp),
-            ) {
-                Text(
-                    text = stringResource(R.string.error_retry),
-                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                )
-            }
-        }
-    }
-}
 
 @Composable
 private fun WaitingIndicator(label: String, modifier: Modifier = Modifier) {

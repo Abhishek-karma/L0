@@ -5,6 +5,7 @@ import com.assistant.app.llm.LlmProvider
 import com.assistant.app.llm.OpenAICompatibleProvider
 import com.assistant.app.llm.model.inferThinkCapability
 import com.assistant.app.ui.settings.isGemini
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -25,42 +26,48 @@ class LlmProviderCoordinator(
 
     init {
         scope.launch(ioDispatcher) {
-            providerStore.ensureSeeded()
-            providerStore.activeSelection().collect { selection ->
-                val provider = selection?.provider
-                val model = selection?.model
-                _chatLlm.value = if (provider == null) {
-                    ChatLlmState.NeedsSetup
-                } else {
-                    val key = providerStore.apiKey(provider.id)
-                    val baseUrl = provider.baseUrl.trim()
-                    if (baseUrl.isBlank() || model == null || key.isNullOrBlank()) {
+            try {
+                providerStore.ensureSeeded()
+                providerStore.activeSelection().collect { selection ->
+                    val provider = selection?.provider
+                    val model = selection?.model
+                    _chatLlm.value = if (provider == null) {
                         ChatLlmState.NeedsSetup
                     } else {
-                        val llm: LlmProvider = if (isGemini(baseUrl, provider.name)) {
-                            GeminiProvider(
-                                client = httpClient,
-                                apiKey = key,
-                                model = model.model,
-                                baseUrl = if (baseUrl == "gemini" || baseUrl.isBlank()) {
-                                    GeminiProvider.DEFAULT_BASE_URL
-                                } else {
-                                    baseUrl
-                                },
-                            )
+                        val key = providerStore.apiKey(provider.id)
+                        val baseUrl = provider.baseUrl.trim()
+                        if (baseUrl.isBlank() || model == null || key.isNullOrBlank()) {
+                            ChatLlmState.NeedsSetup
                         } else {
-                            OpenAICompatibleProvider(httpClient, baseUrl, key, model.model)
+                            val llm: LlmProvider = if (isGemini(baseUrl)) {
+                                GeminiProvider(
+                                    client = httpClient,
+                                    apiKey = key,
+                                    model = model.model,
+                                    baseUrl = if (baseUrl == "gemini" || baseUrl.isBlank()) {
+                                        GeminiProvider.DEFAULT_BASE_URL
+                                    } else {
+                                        baseUrl
+                                    },
+                                )
+                            } else {
+                                OpenAICompatibleProvider(httpClient, baseUrl, key, model.model)
+                            }
+                            ChatLlmState.Ready(
+                                provider = llm,
+                                model = model.model,
+                                providerId = provider.id,
+                                modelId = model.id,
+                                name = provider.name,
+                                thinkCapability = inferThinkCapability(model.model),
+                            )
                         }
-                        ChatLlmState.Ready(
-                            provider = llm,
-                            model = model.model,
-                            providerId = provider.id,
-                            modelId = model.id,
-                            name = provider.name,
-                            thinkCapability = inferThinkCapability(model.model),
-                        )
                     }
                 }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                _chatLlm.value = ChatLlmState.NeedsSetup
             }
         }
     }

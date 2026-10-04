@@ -15,6 +15,9 @@
 
     <string name="composer_hint">Ask anything…</string>
     <string name="composer_web_search">Web search</string>
+    <string name="composer_search_toggle">Search</string>
+    <string name="diagram_label">Diagram</string>
+    <string name="menu_copied">Copied!</string>
     <string name="composer_listening">Listening…</string>
     <string name="cd_selected">Selected</string>
     <string name="cd_send">Send</string>
@@ -90,6 +93,8 @@
     <string name="settings_add_provider">Add provider</string>
     <string name="settings_quick_presets">Quick presets</string>
     <string name="settings_delete">Delete</string>
+    <string name="settings_delete_provider_title">Delete provider?</string>
+    <string name="settings_delete_provider_message">“%1$s”, its models and its stored API key will be removed.</string>
     <string name="settings_cancel">Cancel</string>
     <string name="cd_set_active">Set as active provider</string>
 
@@ -297,6 +302,7 @@
     <string name="settings_section_licenses">Licenses</string>
     <string name="licenses_intro">Libraries bundled in this build, generated from the app\'s Gradle dependencies. Tap a library to read its license.</string>
     <string name="licenses_unavailable">License information is not available in this build.</string>
+    <string name="licenses_loading">Loading licenses…</string>
     <string name="licenses_count">%1$d libraries</string>
 
     <string name="settings_section_help">Help</string>

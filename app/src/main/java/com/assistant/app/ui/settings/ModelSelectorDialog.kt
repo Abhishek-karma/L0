@@ -109,7 +109,7 @@ fun ModelSelectorDialog(
                 ) {
                     val typed = query.trim()
                     if (typed.isNotEmpty()) {
-                        item(key = "typed") {
+                        item(key = "typed:$typed") {
                             ModelRow(
                                 label = typed,
                                 selected = typed == currentModel,
@@ -117,7 +117,7 @@ fun ModelSelectorDialog(
                             )
                         }
                     }
-                    items(matches, key = { it }) { model ->
+                    items(matches, key = { "model:$it" }) { model ->
                         ModelRow(
                             label = model,
                             selected = model == currentModel,

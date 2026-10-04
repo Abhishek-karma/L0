@@ -62,13 +62,9 @@ internal val ProviderPresets = listOf(
     ),
 )
 
-internal fun isGemini(baseUrl: String, name: String = ""): Boolean {
-    val b = baseUrl.trim().lowercase()
-    val n = name.trim().lowercase()
-    return b.contains("generativelanguage.googleapis.com") ||
-        n.contains("gemini") ||
-        b.contains("gemini")
-}
+internal fun isGemini(baseUrl: String): Boolean =
+    baseUrl.trim().lowercase().contains("generativelanguage.googleapis.com") ||
+        baseUrl.trim().lowercase().contains("gemini")
 
 internal fun presetForBaseUrl(baseUrl: String): ProviderPreset? {
     val normalized = baseUrl.trim().trimEnd('/')
@@ -77,5 +73,5 @@ internal fun presetForBaseUrl(baseUrl: String): ProviderPreset? {
 
 internal fun presetFor(baseUrl: String, name: String): ProviderPreset? =
     presetForBaseUrl(baseUrl)
-        ?: if (isGemini(baseUrl, name)) geminiPreset
+        ?: if (isGemini(baseUrl)) geminiPreset
         else ProviderPresets.firstOrNull { it.name.equals(name.trim(), ignoreCase = true) }

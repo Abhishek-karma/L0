@@ -1,5 +1,6 @@
 package com.assistant.app.data
 
+import androidx.room.withTransaction
 import com.assistant.app.data.local.ChatDatabase
 import com.assistant.app.data.local.ProviderEntity
 import com.assistant.app.data.local.ProviderModelEntity
@@ -110,7 +111,6 @@ class ProviderStore(
             return ERROR_CLEARTEXT_NOT_PERMITTED
         }
         if (models.none { it.model.isNotBlank() }) return ERROR_MODEL_REQUIRED
-        if (models.any { it.model.trim().isEmpty() }) return ERROR_MODEL_REQUIRED
         if (enteredKey.isNullOrBlank() && apiKey(id).isNullOrBlank()) return ERROR_API_KEY_REQUIRED
         return null
     }
@@ -140,10 +140,13 @@ class ProviderStore(
         )
         saveModels(id, models)
         if (!apiKey.isNullOrBlank()) {
-            withContext(ioDispatcher) { keyStore.setApiKey(id, apiKey) }
+            val stored = withContext(ioDispatcher) { keyStore.setApiKey(id, apiKey) }
+            check(stored) { ERROR_KEYSTORE_UNAVAILABLE }
         }
-        if (db.providerDao().active() == null) {
-            db.providerDao().setActive(id)
+        db.withTransaction {
+            if (db.providerDao().active() == null) {
+                db.providerDao().setActive(id)
+            }
         }
         return id
     }
@@ -151,7 +154,8 @@ class ProviderStore(
     suspend fun updateProvider(id: Long, draft: ProviderDraft, apiKey: String?, models: List<ModelDraft>) {
         val normalizedUrl = normalizeBaseUrl(draft.baseUrl)
         if (!apiKey.isNullOrBlank()) {
-            withContext(ioDispatcher) { keyStore.setApiKey(id, apiKey) }
+            val stored = withContext(ioDispatcher) { keyStore.setApiKey(id, apiKey) }
+            check(stored) { ERROR_KEYSTORE_UNAVAILABLE }
         }
         db.providerDao().update(id, draft.name.trim(), normalizedUrl)
         saveModels(id, models)
@@ -224,6 +228,7 @@ class ProviderStore(
         const val ERROR_CLEARTEXT_NOT_PERMITTED = "Cleartext HTTP is only permitted for local or private network endpoints (such as localhost, 10.0.2.2, or .local/.lan/.home/.internal domains). Use HTTPS for remote providers."
         const val ERROR_MODEL_REQUIRED = "Add at least one model, and give every model a name. It is sent to the provider exactly as typed."
         const val ERROR_API_KEY_REQUIRED = "Enter the API key for this provider. Leave the field empty only when you are keeping a key you already saved."
+const val ERROR_KEYSTORE_UNAVAILABLE = "The secure keystore is unavailable, so the API key could not be saved. Nothing was stored."
 
         private const val DEFAULT_NAME = "Provider"
     }

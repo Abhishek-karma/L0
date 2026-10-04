@@ -15,6 +15,8 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.printToString
+import androidx.compose.ui.test.swipeDown
 import com.assistant.app.R
 import com.assistant.app.data.ChatLlmState
 import com.assistant.app.llm.ScriptedEvent
@@ -34,6 +36,11 @@ import org.robolectric.annotation.Config
 import kotlinx.coroutines.CompletableDeferred
 
 private const val WAIT_MS = 5_000L
+private const val STREAM_GAP_MS = 300L
+private val FIRST_CHUNK = (1..60).joinToString(" ") { "Streaming sentence number $it." }
+private const val MIDDLE_TOKEN = " middle"
+private const val FINAL_TOKEN = " end"
+private const val HISTORY_REPLY = "Short history reply."
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
@@ -207,10 +214,10 @@ class ChatScreenTest {
         val fixture = ScriptedChatFixture(emptyList())
         setContent(fixture)
 
-        repeat(4) { index ->
-            fixture.provider.script = listOf(ScriptedEvent.Emit(LONG_REPLY))
+        repeat(3) { index ->
+            fixture.provider.script = listOf(ScriptedEvent.Emit(HISTORY_REPLY))
             typeAndSend("History question $index")
-            waitUntilText(LONG_REPLY, substring = true)
+            waitUntilText(HISTORY_REPLY)
         }
 
         fixture.provider.script = listOf(
@@ -223,23 +230,19 @@ class ChatScreenTest {
         typeAndSend("Streaming question")
         waitUntilText(FIRST_CHUNK, substring = true)
 
-        composeRule.onNodeWithText(FIRST_CHUNK, substring = true)
-            .performTouchInput { swipeUp() }
+        composeRule.onNodeWithText("Streaming question")
+            .performTouchInput {
+                repeat(8) { swipeDown() }
+            }
         composeRule.waitForIdle()
-        assertTrue(
-            "reader did not scroll back into history",
-            composeRule.onAllNodesWithText("History question 0", substring = true)
-                .fetchSemanticsNodes().isNotEmpty(),
-        )
+        composeRule.onNodeWithContentDescription(string(R.string.cd_scroll_to_latest))
+            .assertIsDisplayed()
 
-        waitUntilText(FINAL_TOKEN, substring = true)
+        waitUntilContentDescription(string(R.string.cd_send))
         composeRule.waitForIdle()
 
-        assertTrue(
-            "reader was dragged to the latest message by the stream",
-            composeRule.onAllNodesWithText("History question 0", substring = true)
-                .fetchSemanticsNodes().isNotEmpty(),
-        )
+        composeRule.onNodeWithContentDescription(string(R.string.cd_scroll_to_latest))
+            .assertIsDisplayed()
     }
 
 

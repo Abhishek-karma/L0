@@ -6,8 +6,9 @@ class InMemorySecureKeyStore : SecureKeyStore {
 
     override fun apiKey(id: Long): String? = keys[id]
 
-    override fun setApiKey(id: Long, value: String?) {
+    override fun setApiKey(id: Long, value: String?): Boolean {
         if (value == null) keys.remove(id) else keys[id] = value
+        return true
     }
 
     private var legacyKey: String? = null

@@ -32,10 +32,14 @@ class ProviderModelsClient(
             } else {
                 "$trimmedBase/models"
             }
-            val requestBuilder = Request.Builder()
-                .url(url)
-                .header("Accept", "application/json")
-                .get()
+            val requestBuilder = try {
+                Request.Builder()
+                    .url(url)
+                    .header("Accept", "application/json")
+                    .get()
+            } catch (e: IllegalArgumentException) {
+                return@withContext Result.failure(e)
+            }
             if (isGeminiEndpoint) {
                 requestBuilder.header("x-goog-api-key", trimmedKey)
             } else {
@@ -46,8 +50,9 @@ class ProviderModelsClient(
                 client.newCall(request).execute().use { response ->
                     if (!response.isSuccessful) {
                         val errorText = try {
-                            val raw = response.body?.string()
-                            JSONObject(raw.orEmpty()).optJSONObject("error")?.optString("message")
+                            JSONObject(readBounded(response.body?.source()).orEmpty())
+                                .optJSONObject("error")
+                                ?.optString("message")
                         } catch (_: Exception) {
                             null
                         }
@@ -58,13 +63,10 @@ class ProviderModelsClient(
                     }
                     val bodySource = response.body?.source()
                         ?: return@withContext Result.failure(IOException("models response had no body"))
-                    bodySource.request(MAX_RESPONSE_BYTES + 1)
-                    if (bodySource.buffer.size > MAX_RESPONSE_BYTES) {
-                        return@withContext Result.failure(
+                    val json = readBounded(bodySource)
+                        ?: return@withContext Result.failure(
                             IOException("models response exceeded ${MAX_RESPONSE_BYTES} bytes"),
                         )
-                    }
-                    val json = bodySource.readUtf8()
                     val models = if (isGeminiEndpoint) parseGeminiModelIds(json) else parseModelIds(json)
                     Result.success(models)
                 }
@@ -74,6 +76,13 @@ class ProviderModelsClient(
                 Result.failure(e)
             }
         }
+
+    private fun readBounded(source: okio.BufferedSource?): String? {
+        if (source == null) return null
+        if (!source.request(MAX_RESPONSE_BYTES + 1)) return source.readUtf8()
+        if (source.buffer.size > MAX_RESPONSE_BYTES) return null
+        return source.readUtf8()
+    }
 
     private fun parseGeminiModelIds(body: String): List<String> {
         if (body.isBlank()) return emptyList()

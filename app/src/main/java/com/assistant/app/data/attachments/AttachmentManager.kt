@@ -19,8 +19,14 @@ class AttachmentManager(
             incoming.count { it.kind == UiAttachment.Kind.TEXT }
 
         return when {
-            images > MAX_IMAGES_PER_MESSAGE -> current to "Up to $MAX_IMAGES_PER_MESSAGE images per message."
-            texts > MAX_TEXTS_PER_MESSAGE -> current to "Up to $MAX_TEXTS_PER_MESSAGE text files per message."
+            images > MAX_IMAGES_PER_MESSAGE -> {
+                deleteFiles(incoming.map { it.path })
+                current to "Up to $MAX_IMAGES_PER_MESSAGE images per message."
+            }
+            texts > MAX_TEXTS_PER_MESSAGE -> {
+                deleteFiles(incoming.map { it.path })
+                current to "Up to $MAX_TEXTS_PER_MESSAGE text files per message."
+            }
             else -> (current + incoming) to null
         }
     }
