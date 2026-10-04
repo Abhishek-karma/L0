@@ -353,21 +353,45 @@ class ChatRepository(
         }
         cancelFollowUp()
         val job = currentCoroutineContext().job
-        versionStore.snapshotVersion(last.id, state.messages) { transform ->
-            _uiState.update { s -> s.copy(messages = transform(s.messages)) }
-        }
-        _uiState.update { s ->
-            s.copy(messages = s.messages.map { m ->
-                if (m.id == last.id) m.copy(content = "", reasoning = "", followUps = emptyList()) else m
-            })
-        }
-        store?.let { s ->
-            state.conversationId?.let {
-                s.updateMessageContent(last.id, "", "", now())
-                s.updateFollowUps(last.id, null)
+        turnJob = job
+        try {
+            val question = state.messages.dropLast(1).lastOrNull { it.role == Role.USER }
+            // Search before touching the message: a cancelled search leaves the
+            // answer untouched, and only the new generation's results survive.
+            val webResults = if (state.searchEnabled && !question?.content.isNullOrEmpty()) {
+                searchForTurn(question?.content.orEmpty())
+            } else {
+                emptyList()
             }
+
+            versionStore.snapshotVersion(last.id, _uiState.value.messages) { transform ->
+                _uiState.update { s -> s.copy(messages = transform(s.messages)) }
+            }
+            _uiState.update { s ->
+                s.copy(messages = s.messages.map { m ->
+                    when (m.id) {
+                        last.id -> m.copy(
+                            content = "",
+                            reasoning = "",
+                            followUps = emptyList(),
+                            sources = webResults,
+                        )
+                        question?.id -> m.copy(webResults = webResults)
+                        else -> m
+                    }
+                })
+            }
+            store?.let { s ->
+                state.conversationId?.let {
+                    s.updateMessageContent(last.id, "", "", now())
+                    s.updateFollowUps(last.id, null)
+                    s.updateSources(last.id, webResults.takeIf { results -> results.isNotEmpty() }?.toSearchJson())
+                }
+            }
+            startGeneration(llm, last.id, job)
+        } finally {
+            if (turnJob === job) turnJob = null
         }
-        startGeneration(llm, last.id, job)
     }
 
     suspend fun switchVersion(messageId: String, index: Int) {
@@ -538,10 +562,18 @@ class ChatRepository(
     ) {
         val targetConversationId = _uiState.value.conversationId ?: return
         cancelFollowUp()
+        // Built before the session is claimed: an unreadable attachment fails
+        // the turn here instead of being dropped from the request silently.
+        val request = try {
+            requestFor(assistantId)
+        } catch (e: AttachmentUnreadableException) {
+            failUnreadableAttachment(assistantId, targetConversationId, e.displayName)
+            return
+        }
         val session = generationController.tryStartSession(targetConversationId, assistantId, job)
             ?: return
 
-        val (requestMessages, images) = requestFor(assistantId)
+        val (requestMessages, images) = request
         val question = _uiState.value.messages
             .dropLast(1)
             .lastOrNull { it.role == Role.USER }
@@ -739,6 +771,24 @@ class ChatRepository(
         failedAssistantId = if (kept) assistantId else null
     }
 
+    /** Fails the turn before streaming when an attachment copy can no longer be read. */
+    private suspend fun failUnreadableAttachment(
+        assistantId: String,
+        targetConversationId: String,
+        displayName: String,
+    ) {
+        if (_uiState.value.conversationId == targetConversationId) {
+            _uiState.update { state ->
+                state.copy(
+                    messages = state.messages.filterNot { it.id == assistantId },
+                    status = ChatStatus.Error(attachmentUnreadableMessage(displayName)),
+                )
+            }
+        }
+        store?.let { s -> attachmentManager.deleteFiles(s.deleteMessagesFrom(assistantId, targetConversationId)) }
+        failedAssistantId = null
+    }
+
     private suspend fun requestFor(assistantId: String): Pair<List<Pair<Role, String>>, List<String>> =
         withContext(generationDispatcher) {
             val messages = _uiState.value.messages
@@ -755,9 +805,12 @@ class ChatRepository(
                     val textFiles = message.attachments.filter { it.kind == UiAttachment.Kind.TEXT }
                     images = message.attachments
                         .filter { it.kind == UiAttachment.Kind.IMAGE }
-                        .mapNotNull { dataUrl(it.path) }
+                        .map { attachment ->
+                            dataUrl(attachment.path)
+                                ?: throw AttachmentUnreadableException(attachment.displayName)
+                        }
                     val inline = textFiles.joinToString("\n\n") { file ->
-                        "[File: ${file.displayName}]\n${readTextFile(file.path)}"
+                        "[File: ${file.displayName}]\n${readTextFile(file)}"
                     }
                     val webBlock = if (message.webResults.isEmpty()) {
                         ""
@@ -792,8 +845,16 @@ class ChatRepository(
         }
     }
 
-    private fun readTextFile(path: String): String =
-        File(path).takeIf { it.exists() }?.readText().orEmpty()
+    /** Reads a stored text attachment; a missing or unreadable copy fails the turn. */
+    private fun readTextFile(file: UiAttachment): String {
+        val stored = File(file.path)
+        if (!stored.exists()) throw AttachmentUnreadableException(file.displayName)
+        return try {
+            stored.readText()
+        } catch (_: Exception) {
+            throw AttachmentUnreadableException(file.displayName)
+        }
+    }
 
     private fun stashIfNoStore() {
         if (store != null) return
@@ -837,6 +898,14 @@ class ChatRepository(
         const val SEARCH_NOT_CONFIGURED = SearchController.SEARCH_NOT_CONFIGURED
         const val MAX_IMAGES_PER_MESSAGE = AttachmentManager.MAX_IMAGES_PER_MESSAGE
         const val MAX_TEXTS_PER_MESSAGE = AttachmentManager.MAX_TEXTS_PER_MESSAGE
+
+        /** Shown when a stored attachment copy can no longer be read into a request. */
+        fun attachmentUnreadableMessage(displayName: String): String =
+            "Could not read \"$displayName\". Attach the file again to send it."
+
         private const val MAX_PROCESSED_IMAGE_BYTES = 5L * 1024 * 1024
     }
 }
+
+/** Raised when a message's stored attachment copy cannot be read into a request. */
+private class AttachmentUnreadableException(val displayName: String) : Exception()

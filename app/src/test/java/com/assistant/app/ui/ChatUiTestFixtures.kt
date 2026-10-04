@@ -27,6 +27,8 @@ class ScriptedChatFixture(
     voiceOutputEnabled: Boolean = false,
     /** Follow-up chips to surface under the last answer. */
     followUps: List<String> = emptyList(),
+    /** Drives the repository's web-search hook; null means search is unconfigured. */
+    webSearch: (suspend (String) -> com.assistant.app.llm.model.SearchOutcome?)? = null,
 ) {
     val provider: FakeLlmProvider = FakeLlmProvider(script)
 
@@ -40,6 +42,7 @@ class ScriptedChatFixture(
             repository = ChatRepository(
                 chatLlm,
                 followUpSuggestions = { _, _, _, _ -> followUps },
+                webSearch = webSearch,
             ),
             chatLlm = chatLlm,
             voiceOutput = VoiceOutput(

@@ -19,6 +19,8 @@ import com.assistant.app.R
 import com.assistant.app.data.ChatLlmState
 import com.assistant.app.llm.ScriptedEvent
 import com.assistant.app.llm.model.ProviderError
+import com.assistant.app.llm.model.SearchOutcome
+import com.assistant.app.llm.model.SearchResult
 import com.assistant.app.ui.ScriptedChatFixture
 import com.assistant.app.ui.components.ComposerInputTag
 import com.assistant.app.ui.theme.ChatTheme
@@ -29,6 +31,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import kotlinx.coroutines.CompletableDeferred
 
 private const val WAIT_MS = 5_000L
 
@@ -165,6 +168,31 @@ class ChatScreenTest {
 
         waitUntilText("Recovered")
         composeRule.onNodeWithText("Recovered").assertIsDisplayed()
+    }
+
+    @Test
+    fun searchWaitShowsProgressAndOffersStop() {
+        val searchGate = CompletableDeferred<SearchOutcome?>()
+        val fixture = ScriptedChatFixture(
+            script = listOf(ScriptedEvent.Emit("Reply")),
+            webSearch = { searchGate.await() },
+        )
+        setContent(fixture)
+
+        // Web search on for the conversation, then send a question.
+        composeRule.onNodeWithContentDescription(string(R.string.cd_toggle_search)).performClick()
+        typeAndSend("Question")
+
+        // The wait is visible and the turn is cancellable before streaming.
+        waitUntilContentDescription(string(R.string.cd_stop))
+        composeRule.onNodeWithContentDescription(string(R.string.cd_send)).assertDoesNotExist()
+        waitUntilText(string(R.string.status_searching_web))
+
+        searchGate.complete(
+            SearchOutcome.Success(listOf(SearchResult("Result", "https://example.com", "snippet"))),
+        )
+        waitUntilText("Reply")
+        composeRule.onNodeWithContentDescription(string(R.string.cd_send)).assertIsDisplayed()
     }
 
     @Test

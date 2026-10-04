@@ -115,11 +115,13 @@ fun MessageList(
 
         items(messages.asReversed(), key = { it.id }) { message ->
             val isLast = message.id == messages.last().id
+            val isAssistant = message.role == Role.ASSISTANT
             MessageItem(
                 message = message,
-                streaming = status is ChatStatus.Generating && isLast && message.role == Role.ASSISTANT,
+                streaming = status is ChatStatus.Generating && isLast && isAssistant,
+                searching = status is ChatStatus.Searching && isLast && isAssistant,
                 actionsEnabled = status is ChatStatus.Idle,
-                canRegenerate = status is ChatStatus.Idle && isLast && message.role == Role.ASSISTANT,
+                canRegenerate = status is ChatStatus.Idle && isLast && isAssistant,
                 onRegenerate = onRegenerate,
                 onEditAndResend = onEditAndResend,
                 onSwitchVersion = onSwitchVersion,
@@ -134,6 +136,7 @@ fun MessageList(
 private fun MessageItem(
     message: UiMessage,
     streaming: Boolean,
+    searching: Boolean,
     actionsEnabled: Boolean,
     canRegenerate: Boolean,
     onRegenerate: () -> Unit,
@@ -249,13 +252,18 @@ private fun MessageItem(
                         modifier = longPress,
                     )
 
-                    if (streaming && message.content.isBlank()) {
-                        WaitingIndicator(modifier = Modifier.padding(top = AppSpacing.xs))
+                    if ((streaming || searching) && message.content.isBlank()) {
+                        WaitingIndicator(
+                            label = stringResource(
+                                if (searching) R.string.status_searching_web else R.string.status_thinking,
+                            ),
+                            modifier = Modifier.padding(top = AppSpacing.xs),
+                        )
                     }
 
-                    // Citations stay out of the way while the answer streams
-                    // and appear as a compact row once it completes.
-                    if (!streaming && message.sources.isNotEmpty()) {
+                    // Citations stay out of the way while the answer is still
+                    // being prepared or streams, and appear once it completes.
+                    if (!streaming && !searching && message.sources.isNotEmpty()) {
                         SearchCitationsList(sources = message.sources)
                     }
 
@@ -424,9 +432,9 @@ private fun ErrorMessageBanner(
     }
 }
 
-/** Ambient rotating orb shown while waiting for response tokens */
+/** Ambient rotating orb shown while waiting for response tokens or web search */
 @Composable
-private fun WaitingIndicator(modifier: Modifier = Modifier) {
+private fun WaitingIndicator(label: String, modifier: Modifier = Modifier) {
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         delay(WAITING_DELAY_MILLIS)
@@ -434,12 +442,12 @@ private fun WaitingIndicator(modifier: Modifier = Modifier) {
     }
     if (!visible) return
 
-    ThinkingOrbWithLabel(modifier = modifier.padding(vertical = 6.dp))
+    ThinkingOrbWithLabel(label = label, modifier = modifier.padding(vertical = 6.dp))
 }
 
 /** Orb and status word shown together while waiting for response tokens */
 @Composable
-private fun ThinkingOrbWithLabel(modifier: Modifier = Modifier) {
+private fun ThinkingOrbWithLabel(label: String, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
@@ -447,7 +455,7 @@ private fun ThinkingOrbWithLabel(modifier: Modifier = Modifier) {
         ThinkingOrb()
         Spacer(Modifier.width(AppSpacing.sm))
         Text(
-            text = stringResource(R.string.status_thinking),
+            text = label,
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

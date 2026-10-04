@@ -822,6 +822,7 @@ class ChatSearchTest {
         assertEquals("Kotlin coroutines", shown[0].content)
         assertEquals(Role.ASSISTANT, shown[1].role)
         assertTrue(provider.requests.isEmpty())
+        assertEquals(ChatStatus.Searching, viewModel.uiState.value.status)
 
         advanceUntilIdle()
         assertEquals(
@@ -849,5 +850,175 @@ class ChatSearchTest {
             .map { it.content }
         assertEquals(listOf("First"), userTexts)
         assertEquals(1, provider.requests.size)
+    }
+
+    @Test
+    fun `regenerate reruns the search and replaces the sources of the previous answer`() {
+        var searchCall = 0
+        runSearchTest(
+            script = listOf(ScriptedEvent.Emit("Hello")),
+            webSearch = { _ ->
+                searchCall++
+                com.assistant.app.llm.model.SearchOutcome.Success(
+                    listOf(
+                        com.assistant.app.llm.model.SearchResult(
+                            "Result $searchCall",
+                            "https://example.com/$searchCall",
+                            "snippet",
+                        ),
+                    ),
+                )
+            },
+        ) { viewModel, provider, repository ->
+            repository.setSearchEnabled(true)
+            viewModel.send("Kotlin coroutines")
+            advanceUntilIdle()
+            assertEquals(
+                listOf("https://example.com/1"),
+                viewModel.uiState.value.messages[1].sources.map { it.url },
+            )
+
+            viewModel.regenerate()
+            advanceUntilIdle()
+
+            val state = viewModel.uiState.value
+            assertEquals(listOf("https://example.com/2"), state.messages[1].sources.map { it.url })
+            assertEquals(listOf("https://example.com/2"), state.messages[0].webResults.map { it.url })
+            val request = provider.requests.last()
+            assertTrue(request.messages.last().second.contains("https://example.com/2"))
+            assertFalse(request.messages.last().second.contains("https://example.com/1"))
+            assertEquals(2, searchCall)
+        }
+    }
+
+    @Test
+    fun `regenerate with search turned off clears sources and web context`() = runSearchTest(
+        script = listOf(ScriptedEvent.Emit("Hello")),
+        webSearch = { _ ->
+            com.assistant.app.llm.model.SearchOutcome.Success(
+                listOf(com.assistant.app.llm.model.SearchResult("Result", "https://example.com/a", "snippet")),
+            )
+        },
+    ) { viewModel, provider, repository ->
+        repository.setSearchEnabled(true)
+        viewModel.send("Hi")
+        advanceUntilIdle()
+        assertEquals(1, viewModel.uiState.value.messages[1].sources.size)
+
+        repository.setSearchEnabled(false)
+        viewModel.regenerate()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertEquals(ChatStatus.Idle, state.status)
+        assertTrue(state.messages[1].sources.isEmpty())
+        assertTrue(state.messages[0].webResults.isEmpty())
+        assertFalse(provider.requests.last().messages.last().second.contains("[Web results]"))
+    }
+
+    @Test
+    fun `regenerate with a failed search clears sources and proceeds with a notice`() {
+        var searchFails = false
+        runSearchTest(
+            script = listOf(ScriptedEvent.Emit("Hello")),
+            webSearch = { _ ->
+                if (searchFails) {
+                    com.assistant.app.llm.model.SearchOutcome.Failure(
+                        com.assistant.app.llm.model.SearchError.NetworkUnavailable,
+                    )
+                } else {
+                    com.assistant.app.llm.model.SearchOutcome.Success(
+                        listOf(com.assistant.app.llm.model.SearchResult("Result", "https://example.com/a", "snippet")),
+                    )
+                }
+            },
+        ) { viewModel, provider, repository ->
+            repository.setSearchEnabled(true)
+            viewModel.send("Hi")
+            advanceUntilIdle()
+            assertEquals(1, viewModel.uiState.value.messages[1].sources.size)
+
+            searchFails = true
+            viewModel.regenerate()
+            advanceUntilIdle()
+
+            val state = viewModel.uiState.value
+            assertEquals(
+                com.assistant.app.llm.model.SearchError.NetworkUnavailable.userMessage,
+                state.searchNotice,
+            )
+            assertTrue(state.messages[1].sources.isEmpty())
+            assertEquals("Hello", state.messages[1].content)
+            assertFalse(provider.requests.last().messages.last().second.contains("[Web results]"))
+        }
+    }
+
+    @Test
+    fun `stopping during web search returns the turn to idle without sources`() = runSearchTest(
+        script = listOf(ScriptedEvent.Emit("Hello")),
+        webSearch = { _ ->
+            delay(1_000)
+            com.assistant.app.llm.model.SearchOutcome.Success(
+                listOf(com.assistant.app.llm.model.SearchResult("Guide", "https://kotlinlang.org", "async stuff")),
+            )
+        },
+    ) { viewModel, provider, repository ->
+        repository.setSearchEnabled(true)
+        viewModel.send("Kotlin coroutines")
+        runCurrent()
+        assertEquals(ChatStatus.Searching, viewModel.uiState.value.status)
+
+        viewModel.stop()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertEquals(ChatStatus.Idle, state.status)
+        assertTrue(state.messages.last().sources.isEmpty())
+        assertTrue(state.messages.first { it.role == Role.USER }.webResults.isEmpty())
+        assertTrue(provider.requests.isEmpty())
+    }
+
+    @Test
+    fun `stopping a regenerating search keeps the previous answer and its sources`() {
+        var searchCall = 0
+        runSearchTest(
+            script = listOf(ScriptedEvent.Emit("Hello")),
+            webSearch = { _ ->
+                searchCall++
+                if (searchCall > 1) delay(1_000)
+                com.assistant.app.llm.model.SearchOutcome.Success(
+                    listOf(
+                        com.assistant.app.llm.model.SearchResult(
+                            "Result $searchCall",
+                            "https://example.com/$searchCall",
+                            "snippet",
+                        ),
+                    ),
+                )
+            },
+        ) { viewModel, provider, repository ->
+            repository.setSearchEnabled(true)
+            viewModel.send("Hi")
+            advanceUntilIdle()
+            assertEquals(
+                listOf("https://example.com/1"),
+                viewModel.uiState.value.messages[1].sources.map { it.url },
+            )
+
+            viewModel.regenerate()
+            runCurrent()
+            assertEquals(ChatStatus.Searching, viewModel.uiState.value.status)
+            // The previous answer stays readable while the new search runs.
+            assertEquals("Hello", viewModel.uiState.value.messages[1].content)
+
+            viewModel.stop()
+            advanceUntilIdle()
+
+            val state = viewModel.uiState.value
+            assertEquals(ChatStatus.Idle, state.status)
+            assertEquals("Hello", state.messages[1].content)
+            assertEquals(listOf("https://example.com/1"), state.messages[1].sources.map { it.url })
+            assertEquals(1, provider.requests.size)
+        }
     }
 }

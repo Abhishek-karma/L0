@@ -247,6 +247,10 @@ fun ChatScreen(
 
     val error = state.status as? ChatStatus.Error
     val isGenerating = state.status is ChatStatus.Generating
+    val isSearching = state.status is ChatStatus.Searching
+    // Any phase of an in-flight turn: the composer offers Stop and message
+    // actions stay disabled until the turn settles.
+    val isBusy = isGenerating || isSearching
     val voiceActive = state.voiceStatus == VoiceStatus.Listening ||
         state.voiceStatus == VoiceStatus.Processing ||
         state.voiceStatus == VoiceStatus.Speaking
@@ -254,7 +258,7 @@ fun ChatScreen(
     val isPendingLoad = pendingConversationId != null && state.messages.isEmpty()
     val isInitialLoading = chatLlmState is ChatLlmState.Loading && state.messages.isEmpty()
     val suggestions = state.messages.lastOrNull()
-        ?.takeIf { !isGenerating && it.role == Role.ASSISTANT }
+        ?.takeIf { !isBusy && it.role == Role.ASSISTANT }
         ?.followUps
         .orEmpty()
     val composerHint: () -> String? = {
@@ -264,6 +268,9 @@ fun ChatScreen(
             else -> state.searchNotice
         }
     }
+    // A regenerating turn keeps its previous answer on screen, so the
+    // transcript cannot show the searching state; the hint carries it instead.
+    val showSearchingHint = isSearching && state.messages.lastOrNull()?.content?.isNotBlank() == true
 
     val listState = rememberLazyListState()
     val listScope = rememberCoroutineScope()
@@ -288,7 +295,7 @@ fun ChatScreen(
         // Streaming tracks the newest tokens with an instant jump: animating
         // every token would jitter, and the growing message already keeps the
         // viewport on the latest content.
-        if (isGenerating) {
+        if (isBusy) {
             listState.scrollToItem(0)
         } else {
             listState.animateScrollToItem(0)
@@ -302,8 +309,8 @@ fun ChatScreen(
         snapshotFlow { listState.isScrollInProgress }
             .collect { scrolling -> if (scrolling) keyboard?.hide() }
     }
-    LaunchedEffect(isGenerating) {
-        if (!isGenerating && state.draft.isBlank()) keyboard?.hide()
+    LaunchedEffect(isBusy) {
+        if (!isBusy && state.draft.isBlank()) keyboard?.hide()
     }
 
     @OptIn(ExperimentalLayoutApi::class)
@@ -431,7 +438,7 @@ fun ChatScreen(
                     keyboard?.hide()
                 },
                 onStop = viewModel::stop,
-                isGenerating = isGenerating,
+                isGenerating = isBusy,
                 onMicClick = when (state.voiceStatus) {
                     VoiceStatus.Speaking, VoiceStatus.Listening, VoiceStatus.Processing -> {
                         { viewModel.onMicClick() }
@@ -614,6 +621,9 @@ fun ChatScreen(
                             }
                         }
 
+                        if (showSearchingHint) {
+                            InlineHint(text = stringResource(R.string.status_searching_web))
+                        }
                         composerHint()?.let { InlineHint(text = it) }
                         if (suggestions.isNotEmpty()) {
                             SuggestionsRow(
