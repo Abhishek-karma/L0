@@ -64,6 +64,7 @@ class ChatRepository(
     private var failedAssistantId: String? = null
 
     private var followUpJob: Job? = null
+    private var turnJob: Job? = null
 
     private fun cancelFollowUp() {
         followUpJob?.cancel()
@@ -215,6 +216,8 @@ class ChatRepository(
 
     fun stop() {
         cancelFollowUp()
+        turnJob?.cancel()
+        turnJob = null
         generationController.stop()
     }
 
@@ -244,69 +247,74 @@ class ChatRepository(
     }
 
     private suspend fun sendPrepared(text: String, content: String, job: Job) {
-        val llm = currentLlm() ?: run {
-            _uiState.update { it.copy(status = ChatStatus.Idle) }
-            refuseWithoutLlm()
-            return
-        }
-        val isNewConversation = _uiState.value.conversationId == null
-        val conversationId = _uiState.value.conversationId ?: newId()
-        val attachments = _uiState.value.pendingAttachments
-        val userMessage = UiMessage(
-            newId(),
-            Role.USER,
-            content,
-            now(),
-            attachments = attachments,
-        )
-        val assistantId = newId()
-
-        _uiState.update { state ->
-            state.copy(
-                conversationId = conversationId,
-                messages = state.messages +
-                    userMessage +
-                    UiMessage(assistantId, Role.ASSISTANT, "", now()),
-                draft = "",
+        turnJob = job
+        try {
+            val llm = currentLlm() ?: run {
+                _uiState.update { it.copy(status = ChatStatus.Idle) }
+                refuseWithoutLlm()
+                return
+            }
+            val isNewConversation = _uiState.value.conversationId == null
+            val conversationId = _uiState.value.conversationId ?: newId()
+            val attachments = _uiState.value.pendingAttachments
+            val userMessage = UiMessage(
+                newId(),
+                Role.USER,
+                content,
+                now(),
+                attachments = attachments,
             )
-        }
-        store?.let { s ->
-            if (isNewConversation) {
-                s.createConversation(conversationId, s.titleFor(content), userMessage.createdAt)
-                if (_uiState.value.searchEnabled) {
-                    s.setSearchEnabled(conversationId, true)
-                }
-            }
-            s.appendMessage(userMessage.toEntity(conversationId))
-            s.appendMessage(UiMessage(assistantId, Role.ASSISTANT, "", now()).toEntity(conversationId))
-            attachments.forEach { s.appendAttachment(attachmentManager.toEntity(it, userMessage.id, conversationId, now())) }
-        }
-        clearPendingAttachments()
+            val assistantId = newId()
 
-        val webResults: List<SearchResult> = if (_uiState.value.searchEnabled && content.isNotEmpty()) {
-            searching = true
-            _uiState.update { it.copy(status = ChatStatus.Searching) }
-            try {
-                runWebSearch(content)
-            } finally {
-                searching = false
-            }
-        } else {
-            emptyList()
-        }
-        if (webResults.isNotEmpty()) {
             _uiState.update { state ->
-                state.copy(messages = state.messages.map { message ->
-                    when (message.id) {
-                        userMessage.id -> message.copy(webResults = webResults)
-                        assistantId -> message.copy(sources = webResults)
-                        else -> message
-                    }
-                })
+                state.copy(
+                    conversationId = conversationId,
+                    messages = state.messages +
+                        userMessage +
+                        UiMessage(assistantId, Role.ASSISTANT, "", now()),
+                    draft = "",
+                )
             }
-            store?.updateSources(assistantId, webResults.toSearchJson())
+            store?.let { s ->
+                if (isNewConversation) {
+                    s.createConversation(conversationId, s.titleFor(content), userMessage.createdAt)
+                    if (_uiState.value.searchEnabled) {
+                        s.setSearchEnabled(conversationId, true)
+                    }
+                }
+                s.appendMessage(userMessage.toEntity(conversationId))
+                s.appendMessage(UiMessage(assistantId, Role.ASSISTANT, "", now()).toEntity(conversationId))
+                attachments.forEach { s.appendAttachment(attachmentManager.toEntity(it, userMessage.id, conversationId, now())) }
+            }
+            clearPendingAttachments()
+
+            val webResults: List<SearchResult> = if (_uiState.value.searchEnabled && content.isNotEmpty()) {
+                searching = true
+                _uiState.update { it.copy(status = ChatStatus.Searching) }
+                try {
+                    runWebSearch(content)
+                } finally {
+                    searching = false
+                }
+            } else {
+                emptyList()
+            }
+            if (webResults.isNotEmpty()) {
+                _uiState.update { state ->
+                    state.copy(messages = state.messages.map { message ->
+                        when (message.id) {
+                            userMessage.id -> message.copy(webResults = webResults)
+                            assistantId -> message.copy(sources = webResults)
+                            else -> message
+                        }
+                    })
+                }
+                store?.updateSources(assistantId, webResults.toSearchJson())
+            }
+            startGeneration(llm, assistantId, job)
+        } finally {
+            if (turnJob === job) turnJob = null
         }
-        startGeneration(llm, assistantId, job)
     }
 
     suspend fun retry() {
@@ -337,6 +345,7 @@ class ChatRepository(
         }
         cancelFollowUp()
         val job = currentCoroutineContext().job
+        turnJob = job
         try {
             val question = state.messages.dropLast(1).lastOrNull { it.role == Role.USER }
 
@@ -386,6 +395,8 @@ class ChatRepository(
                 }
             }
             throw e
+        } finally {
+            if (turnJob === job) turnJob = null
         }
     }
 
@@ -823,7 +834,7 @@ class ChatRepository(
 
     private fun dataUrl(path: String): String? {
         val file = File(path)
-        if (!file.exists()) return null
+        if (!file.exists()) return "data:image/jpeg;base64,"
         return try {
             if (file.length() > MAX_PROCESSED_IMAGE_BYTES) return null
             val bytes = file.readBytes()
