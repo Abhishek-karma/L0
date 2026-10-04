@@ -35,6 +35,8 @@ import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.job
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import java.io.File
@@ -65,6 +67,12 @@ class ChatRepository(
 
     private var followUpJob: Job? = null
     private var turnJob: Job? = null
+
+    /**
+     * Held for the whole lifetime of a turn. Admission is non-blocking: a turn that arrives while
+     * another is running is dropped instead of queued, so a double tap cannot open two turns.
+     */
+    private val turnLock = Mutex()
 
     private fun cancelFollowUp() {
         followUpJob?.cancel()
@@ -223,17 +231,13 @@ class ChatRepository(
 
     suspend fun send(text: String) {
         val content = text.trim()
-        if ((content.isEmpty() && _uiState.value.pendingAttachments.isEmpty()) ||
-            generationController.isGenerating ||
-            searching
-        ) {
-            return
-        }
-        cancelFollowUp()
-        cleanupFailedAssistantMessage()
-        val job = currentCoroutineContext().job
+        if (content.isEmpty() && _uiState.value.pendingAttachments.isEmpty()) return
+        if (!turnLock.tryLock()) return
         try {
-            sendPrepared(text, content, job)
+            if (generationController.isGenerating || searching) return
+            cancelFollowUp()
+            cleanupFailedAssistantMessage()
+            sendPrepared(text, content, currentCoroutineContext().job)
         } catch (e: CancellationException) {
             _uiState.update { state ->
                 if (state.status is ChatStatus.Generating || state.status is ChatStatus.Searching) {
@@ -243,6 +247,8 @@ class ChatRepository(
                 }
             }
             throw e
+        } finally {
+            turnLock.unlock()
         }
     }
 
@@ -319,14 +325,19 @@ class ChatRepository(
 
     suspend fun retry() {
         if (_uiState.value.status !is ChatStatus.Error || generationController.isGenerating) return
-        if (currentLlm() == null) {
-            refuseWithoutLlm()
-            return
+        if (!turnLock.tryLock()) return
+        try {
+            val llm = currentLlm() ?: run {
+                refuseWithoutLlm()
+                return
+            }
+            cancelFollowUp()
+            cleanupFailedAssistantMessage()
+            if (_uiState.value.messages.none { it.role == Role.USER }) return
+            appendAssistantPlaceholderAndGenerate(llm, currentCoroutineContext().job)
+        } finally {
+            turnLock.unlock()
         }
-        cancelFollowUp()
-        cleanupFailedAssistantMessage()
-        if (_uiState.value.messages.none { it.role == Role.USER }) return
-        appendAssistantPlaceholderAndGenerate(currentCoroutineContext().job)
     }
 
     fun dismissError() {
@@ -339,14 +350,15 @@ class ChatRepository(
         val state = _uiState.value
         val last = state.messages.lastOrNull()
         if (state.status !is ChatStatus.Idle || generationController.isGenerating || last?.role != Role.ASSISTANT) return
-        val llm = currentLlm() ?: run {
-            refuseWithoutLlm()
-            return
-        }
-        cancelFollowUp()
+        if (!turnLock.tryLock()) return
         val job = currentCoroutineContext().job
-        turnJob = job
         try {
+            val llm = currentLlm() ?: run {
+                refuseWithoutLlm()
+                return
+            }
+            cancelFollowUp()
+            turnJob = job
             val question = state.messages.dropLast(1).lastOrNull { it.role == Role.USER }
 
             val webResults: List<SearchResult> = if (state.searchEnabled && !question?.content.isNullOrEmpty()) {
@@ -397,6 +409,7 @@ class ChatRepository(
             throw e
         } finally {
             if (turnJob === job) turnJob = null
+            turnLock.unlock()
         }
     }
 
@@ -423,33 +436,44 @@ class ChatRepository(
     suspend fun editAndResend(messageId: String, newContent: String) {
         val content = newContent.trim()
         if (content.isEmpty() || generationController.isGenerating) return
-        if (currentLlm() == null) {
-            refuseWithoutLlm()
-            return
-        }
-        cancelFollowUp()
-        val job = currentCoroutineContext().job
-        val current = _uiState.value
-        val index = current.messages.indexOfFirst { it.id == messageId && it.role == Role.USER }
-        if (index < 0) return
-        cleanupFailedAssistantMessage()
-        val edited = current.messages[index].copy(content = content)
-        _uiState.update { it.copy(messages = it.messages.take(index) + edited, draft = "") }
-        current.messages.drop(index + 1).forEach { versionStore.remove(it.id) }
-        store?.let { s ->
-            current.conversationId?.let { conversationId ->
-                current.messages.getOrNull(index + 1)?.let {
-                    attachmentManager.deleteFiles(s.deleteMessagesFrom(it.id, conversationId))
-                }
-                s.updateMessageContent(edited.id, content, "", now())
+        if (!turnLock.tryLock()) return
+        try {
+            val llm = currentLlm() ?: run {
+                refuseWithoutLlm()
+                return
             }
+            cancelFollowUp()
+            val job = currentCoroutineContext().job
+            val current = _uiState.value
+            val index = current.messages.indexOfFirst { it.id == messageId && it.role == Role.USER }
+            if (index < 0) return
+            cleanupFailedAssistantMessage()
+            val edited = current.messages[index].copy(content = content)
+            _uiState.update { it.copy(messages = it.messages.take(index) + edited, draft = "") }
+            current.messages.drop(index + 1).forEach { versionStore.remove(it.id) }
+            store?.let { s ->
+                current.conversationId?.let { conversationId ->
+                    current.messages.getOrNull(index + 1)?.let {
+                        attachmentManager.deleteFiles(s.deleteMessagesFrom(it.id, conversationId))
+                    }
+                    s.updateMessageContent(edited.id, content, "", now())
+                }
+            }
+            appendAssistantPlaceholderAndGenerate(llm, job)
+        } finally {
+            turnLock.unlock()
         }
-        appendAssistantPlaceholderAndGenerate(job)
     }
 
-    fun newConversation() {
+    suspend fun newConversation() {
         cancelFollowUp()
         stop()
+        // Cancelling above lets the in-flight turn unwind; waiting on the lock afterwards means the
+        // reset cannot race a turn that is still persisting, and the next send is not dropped.
+        turnLock.withLock { resetToNewConversation() }
+    }
+
+    private fun resetToNewConversation() {
         stashIfNoStore()
         failedAssistantId = null
         discardStagedAttachments()
@@ -473,6 +497,10 @@ class ChatRepository(
         cancelFollowUp()
         stop()
         generationController.joinActive()
+        turnLock.withLock { loadConversation(id) }
+    }
+
+    private suspend fun loadConversation(id: String) {
         stashIfNoStore()
         failedAssistantId = null
         discardStagedAttachments()
@@ -535,21 +563,10 @@ class ChatRepository(
         if (_uiState.value.conversationId == id) {
             cancelFollowUp()
             stop()
-            failedAssistantId = null
-            discardStagedAttachments()
-            conversationSnapshots.remove(id)
-            versionStore.clear()
-            _uiState.update {
-                it.copy(
-                    conversationId = null,
-                    messages = emptyList(),
-                    status = ChatStatus.Idle,
-                    draft = "",
-                    voiceStatus = VoiceStatus.Idle,
-                    voiceHint = false,
-                    searchEnabled = false,
-                    searchNotice = null,
-                )
+            turnLock.withLock {
+                conversationSnapshots.remove(id)
+                resetToNewConversation()
+                conversationSnapshots.remove(id)
             }
         }
         attachmentManager.deleteFiles(store?.deleteConversation(id).orEmpty())
@@ -688,11 +705,7 @@ class ChatRepository(
         }
     }
 
-    private suspend fun appendAssistantPlaceholderAndGenerate(job: Job) {
-        val llm = currentLlm() ?: run {
-            refuseWithoutLlm()
-            return
-        }
+    private suspend fun appendAssistantPlaceholderAndGenerate(llm: ChatLlmState.Ready, job: Job) {
         val assistantId = newId()
         _uiState.update { state ->
             state.copy(messages = state.messages + UiMessage(assistantId, Role.ASSISTANT, "", now()))

@@ -202,6 +202,47 @@ class ChatScreenTest {
         composeRule.onNodeWithText(FIRST_CHUNK, substring = true).assertIsDisplayed()
     }
 
+@Test
+    fun readerScrolledBackDuringStreamingIsNotDraggedToTheLatestMessage() {
+        val fixture = ScriptedChatFixture(emptyList())
+        setContent(fixture)
+
+        repeat(4) { index ->
+            fixture.provider.script = listOf(ScriptedEvent.Emit(LONG_REPLY))
+            typeAndSend("History question $index")
+            waitUntilText(LONG_REPLY, substring = true)
+        }
+
+        fixture.provider.script = listOf(
+            ScriptedEvent.Emit(FIRST_CHUNK),
+            ScriptedEvent.Delay(STREAM_GAP_MS),
+            ScriptedEvent.Emit(MIDDLE_TOKEN),
+            ScriptedEvent.Delay(STREAM_GAP_MS),
+            ScriptedEvent.Emit(FINAL_TOKEN),
+        )
+        typeAndSend("Streaming question")
+        waitUntilText(FIRST_CHUNK, substring = true)
+
+        composeRule.onNodeWithText(FIRST_CHUNK, substring = true)
+            .performTouchInput { swipeUp() }
+        composeRule.waitForIdle()
+        assertTrue(
+            "reader did not scroll back into history",
+            composeRule.onAllNodesWithText("History question 0", substring = true)
+                .fetchSemanticsNodes().isNotEmpty(),
+        )
+
+        waitUntilText(FINAL_TOKEN, substring = true)
+        composeRule.waitForIdle()
+
+        assertTrue(
+            "reader was dragged to the latest message by the stream",
+            composeRule.onAllNodesWithText("History question 0", substring = true)
+                .fetchSemanticsNodes().isNotEmpty(),
+        )
+    }
+
+
     @Test
     fun needsSetupShowsCalmSetupStateAndOpensSettings() {
         var settingsOpened = false

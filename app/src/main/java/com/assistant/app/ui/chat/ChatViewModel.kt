@@ -232,7 +232,7 @@ class ChatViewModel(
         voiceHandler.stopListening()
         voiceHandler.stopSpeaking()
         voiceHandler.suppressNextSpeak = true
-        repository.newConversation()
+        viewModelScope.launch { repository.newConversation() }
     }
 
     fun deleteConversation(id: String) {
