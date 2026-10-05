@@ -75,6 +75,7 @@ import kotlinx.coroutines.delay
 
 private val USER_BUBBLE_SHAPE = AppShape.userBubble
 private val USER_BUBBLE_MAX_WIDTH = 340.dp
+internal val MESSAGE_LIST_BOTTOM_PADDING = AppSpacing.sm
 private const val WAITING_DELAY_MILLIS = 350L
 
 internal fun isWebUrl(url: String): Boolean =
@@ -105,7 +106,7 @@ fun MessageList(
             start = AppSpacing.lg,
             end = AppSpacing.lg,
             top = topPadding,
-            bottom = AppSpacing.sm,
+            bottom = MESSAGE_LIST_BOTTOM_PADDING,
         ),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.xl),
     ) {

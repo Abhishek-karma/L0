@@ -20,6 +20,7 @@ import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -35,11 +36,13 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.printToString
 import com.assistant.app.R
 import com.assistant.app.ui.chat.ChatScreen
+import com.assistant.app.ui.chat.isNearBottom
 import com.assistant.app.llm.ScriptedEvent
 import com.assistant.app.ui.components.ChatModelOption
 import com.assistant.app.ui.components.ComposerInputTag
 import com.assistant.app.ui.theme.ChatTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -156,6 +159,31 @@ class ChatScreenShellTest {
         composeRule.onNodeWithContentDescription(
             composeRule.activity.getString(R.string.cd_toggle_speaker),
         ).assertDoesNotExist()
+    }
+
+    @Test
+    fun onlyBounceSizedDriftStillCountsAsBeingAtTheBottom() {
+        lateinit var listState: LazyListState
+        composeRule.setContent {
+            ChatTheme {
+                listState = rememberLazyListState()
+                LazyColumn(
+                    state = listState,
+                    reverseLayout = true,
+                    modifier = Modifier.size(160.dp),
+                ) {
+                    items(20) { Box(Modifier.height(80.dp)) }
+                }
+            }
+        }
+
+        composeRule.runOnIdle { assertTrue(listState.isNearBottom(0f)) }
+
+        composeRule.runOnIdle { runBlocking { listState.scrollBy(20f) } }
+        composeRule.runOnIdle { assertTrue(listState.isNearBottom(64f)) }
+
+        composeRule.runOnIdle { runBlocking { listState.scrollBy(400f) } }
+        composeRule.runOnIdle { assertFalse(listState.isNearBottom(64f)) }
     }
 
     @Test
@@ -357,7 +385,76 @@ class ChatScreenShellTest {
         composeRule.onNodeWithTag(ComposerInputTag).assertTextEquals("Ask about the setup?")
     }
 
+    @Test
+    fun anAnswerTallerThanTheChatAreaHoldsItsHeadInsteadOfItsTail() {
+        composeRule.setContent {
+            ChatTheme {
+                ChatScreen(
+                    onOpenSettings = {},
+                    viewModelFactory = ScriptedChatFixture(
+                        listOf(ScriptedEvent.Emit(LONG_STREAM)),
+                    ).factory,
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag(ComposerInputTag).performTextInput("Hi")
+        composeRule.onNodeWithContentDescription("Send").performClick()
+        composeRule.waitUntil {
+            composeRule.onAllNodesWithText(LONG_STREAM).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.waitForIdle()
+
+        val head = composeRule.onNodeWithText(LONG_STREAM).getUnclippedBoundsInRoot()
+        assertEquals(
+            "the head of the answer should sit just under the top bar",
+            64f,
+            head.top.value,
+            1f,
+        )
+        assertTrue(
+            "the tail of the answer should be past the chat area",
+            head.bottom.value > head.top.value + 400f,
+        )
+        composeRule.onNodeWithContentDescription(
+            composeRule.activity.getString(R.string.cd_scroll_to_latest),
+        ).assertIsDisplayed()
+    }
+
+    @Test
+    fun anAnswerThatFitsKeepsItsTailAndHidesTheScrollAffordance() {
+        composeRule.setContent {
+            ChatTheme {
+                ChatScreen(
+                    onOpenSettings = {},
+                    viewModelFactory = ScriptedChatFixture(
+                        listOf(ScriptedEvent.Emit(LONG_ANSWER)),
+                    ).factory,
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag(ComposerInputTag).performTextInput("Hi")
+        composeRule.onNodeWithContentDescription("Send").performClick()
+        composeRule.waitUntil {
+            composeRule.onAllNodesWithText(LONG_ANSWER).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithContentDescription(
+            composeRule.activity.getString(R.string.menu_copy),
+        ).assertIsDisplayed()
+        composeRule.onNodeWithContentDescription(
+            composeRule.activity.getString(R.string.cd_scroll_to_latest),
+        ).assertDoesNotExist()
+    }
+
     private companion object {
+
+        val LONG_STREAM: String =
+            (1..60).joinToString("\n") {
+                "Paragraph $it of a reply long enough to fill the whole chat area."
+            }
 
         const val LONG_ANSWER =
             "A considerably longer answer so the follow-up generator is willing to " +

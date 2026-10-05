@@ -17,7 +17,6 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -65,6 +64,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -79,6 +79,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
@@ -107,6 +108,7 @@ import com.assistant.app.ui.theme.AppMotion
 import com.assistant.app.ui.theme.AppSpacing
 import com.assistant.app.ui.theme.AppShape
 import com.assistant.app.ui.theme.appTween
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -273,16 +275,19 @@ fun ChatScreen(
 
     val listState = rememberLazyListState()
     val listScope = rememberCoroutineScope()
-    val dragged by listState.interactionSource.collectIsDraggedAsState()
 
-    var followLatest by remember { mutableStateOf(true) }
-    LaunchedEffect(dragged) {
-        if (dragged) followLatest = false
+    val density = LocalDensity.current
+    val followTolerancePx = with(density) { BOUNCE_TOLERANCE.toPx() }
+
+    val followLatest = remember(listState, followTolerancePx) {
+        derivedStateOf { listState.isNearBottom(followTolerancePx) }
     }
     val arrivedMessageCount = state.messages.size
     LaunchedEffect(arrivedMessageCount) {
-        if (!followLatest) return@LaunchedEffect
-        listState.scrollToItem(0)
+        val wasFollowingLatest = followLatest.value
+        snapshotFlow { listState.layoutInfo.totalItemsCount }
+            .first { it >= arrivedMessageCount }
+        if (wasFollowingLatest) listState.scrollToItem(0, headAnchorPx(listState))
     }
 
     LaunchedEffect(listState) {
@@ -423,7 +428,6 @@ fun ChatScreen(
 
                     listScope.launch {
                         listState.scrollToItem(0)
-                        followLatest = true
                     }
                     keyboard?.hide()
                 },
@@ -541,7 +545,7 @@ fun ChatScreen(
                                 modifier = Modifier.fillMaxWidth(),
                             )
 
-                            val showScrollAffordance = !followLatest
+                            val showScrollAffordance = !followLatest.value
                             val fabAlpha by animateFloatAsState(
                                 targetValue = if (showScrollAffordance) 1f else 0f,
                                 animationSpec = appTween(AppMotion.FAST),
@@ -551,7 +555,6 @@ fun ChatScreen(
                                 val scrollLabel = stringResource(R.string.cd_scroll_to_latest)
                                 Surface(
                                     onClick = {
-                                        followLatest = true
                                         listScope.launch { listState.animateScrollToItem(0) }
                                     },
                                     shape = CircleShape,
@@ -641,3 +644,14 @@ fun ChatScreen(
         }
     }
 }
+
+internal fun LazyListState.isNearBottom(thresholdPx: Float): Boolean =
+    firstVisibleItemIndex == 0 && firstVisibleItemScrollOffset <= thresholdPx
+
+private fun LazyListState.headAnchorPx(): Int {
+    val info = layoutInfo
+    val newest = info.visibleItemsInfo.firstOrNull { it.index == 0 } ?: return 0
+    return (newest.size - info.viewportSize.height).coerceAtLeast(0)
+}
+
+private val BOUNCE_TOLERANCE = 32.dp

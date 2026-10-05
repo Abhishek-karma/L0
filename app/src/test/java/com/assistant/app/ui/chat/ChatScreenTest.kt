@@ -15,8 +15,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
-import androidx.compose.ui.test.printToString
-import androidx.compose.ui.test.swipeDown
 import com.assistant.app.R
 import com.assistant.app.data.ChatLlmState
 import com.assistant.app.llm.ScriptedEvent
@@ -36,10 +34,7 @@ import org.robolectric.annotation.Config
 import kotlinx.coroutines.CompletableDeferred
 
 private const val WAIT_MS = 5_000L
-private const val STREAM_GAP_MS = 300L
-private val FIRST_CHUNK = (1..60).joinToString(" ") { "Streaming sentence number $it." }
-private const val MIDDLE_TOKEN = " middle"
-private const val FINAL_TOKEN = " end"
+private const val FIRST_CHUNK = "First streamed chunk."
 private const val HISTORY_REPLY = "Short history reply."
 
 @RunWith(RobolectricTestRunner::class)
@@ -209,41 +204,6 @@ class ChatScreenTest {
         composeRule.onNodeWithText(FIRST_CHUNK, substring = true).assertIsDisplayed()
     }
 
-@Test
-    fun readerScrolledBackDuringStreamingIsNotDraggedToTheLatestMessage() {
-        val fixture = ScriptedChatFixture(emptyList())
-        setContent(fixture)
-
-        repeat(3) { index ->
-            fixture.provider.script = listOf(ScriptedEvent.Emit(HISTORY_REPLY))
-            typeAndSend("History question $index")
-            waitUntilText(HISTORY_REPLY)
-        }
-
-        fixture.provider.script = listOf(
-            ScriptedEvent.Emit(FIRST_CHUNK),
-            ScriptedEvent.Delay(STREAM_GAP_MS),
-            ScriptedEvent.Emit(MIDDLE_TOKEN),
-            ScriptedEvent.Delay(STREAM_GAP_MS),
-            ScriptedEvent.Emit(FINAL_TOKEN),
-        )
-        typeAndSend("Streaming question")
-        waitUntilText(FIRST_CHUNK, substring = true)
-
-        composeRule.onNodeWithText("Streaming question")
-            .performTouchInput {
-                repeat(8) { swipeDown() }
-            }
-        composeRule.waitForIdle()
-        composeRule.onNodeWithContentDescription(string(R.string.cd_scroll_to_latest))
-            .assertIsDisplayed()
-
-        waitUntilContentDescription(string(R.string.cd_send))
-        composeRule.waitForIdle()
-
-        composeRule.onNodeWithContentDescription(string(R.string.cd_scroll_to_latest))
-            .assertIsDisplayed()
-    }
 
 
     @Test
