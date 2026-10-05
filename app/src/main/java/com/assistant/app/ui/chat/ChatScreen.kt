@@ -103,11 +103,13 @@ import com.assistant.app.ui.components.AttachmentSheet
 import com.assistant.app.ui.components.AttachmentThumbnail
 import com.assistant.app.ui.components.Composer
 import com.assistant.app.ui.components.ComposerAttachAction
+import com.assistant.app.ui.components.MESSAGE_LIST_BOTTOM_PADDING
 import com.assistant.app.ui.components.MessageList
 import com.assistant.app.ui.theme.AppMotion
 import com.assistant.app.ui.theme.AppSpacing
 import com.assistant.app.ui.theme.AppShape
 import com.assistant.app.ui.theme.appTween
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.io.File
@@ -278,16 +280,34 @@ fun ChatScreen(
 
     val density = LocalDensity.current
     val followTolerancePx = with(density) { BOUNCE_TOLERANCE.toPx() }
+    val contentBottomPaddingPx = with(density) { MESSAGE_LIST_BOTTOM_PADDING.roundToPx() }
 
     val followLatest = remember(listState, followTolerancePx) {
         derivedStateOf { listState.isNearBottom(followTolerancePx) }
     }
     val arrivedMessageCount = state.messages.size
     LaunchedEffect(arrivedMessageCount) {
-        val wasFollowingLatest = followLatest.value
-        snapshotFlow { listState.layoutInfo.totalItemsCount }
-            .first { it >= arrivedMessageCount }
-        if (wasFollowingLatest) listState.scrollToItem(0, headAnchorPx(listState))
+        if (followLatest.value && !listState.isScrollInProgress) listState.scrollToItem(0)
+    }
+
+    LaunchedEffect(listState, contentBottomPaddingPx) {
+        snapshotFlow {
+            val info = listState.layoutInfo
+            val newest = info.visibleItemsInfo.firstOrNull { it.index == 0 }
+            if (!followLatest.value || newest == null) {
+                null
+            } else {
+                val contentHeight =
+                    (info.viewportSize.height - contentBottomPaddingPx).coerceAtLeast(0)
+                (newest.size - contentHeight).coerceAtLeast(0)
+            }
+        }.collect { anchor ->
+            if (anchor != null && anchor != listState.firstVisibleItemScrollOffset &&
+                !listState.isScrollInProgress
+            ) {
+                listState.scrollToItem(0, anchor)
+            }
+        }
     }
 
     LaunchedEffect(listState) {
@@ -647,11 +667,5 @@ fun ChatScreen(
 
 internal fun LazyListState.isNearBottom(thresholdPx: Float): Boolean =
     firstVisibleItemIndex == 0 && firstVisibleItemScrollOffset <= thresholdPx
-
-private fun LazyListState.headAnchorPx(): Int {
-    val info = layoutInfo
-    val newest = info.visibleItemsInfo.firstOrNull { it.index == 0 } ?: return 0
-    return (newest.size - info.viewportSize.height).coerceAtLeast(0)
-}
 
 private val BOUNCE_TOLERANCE = 32.dp

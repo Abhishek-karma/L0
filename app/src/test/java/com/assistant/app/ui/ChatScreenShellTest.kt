@@ -406,6 +406,7 @@ class ChatScreenShellTest {
         composeRule.waitForIdle()
 
         val head = composeRule.onNodeWithText(LONG_STREAM).getUnclippedBoundsInRoot()
+        println("PROBE head.top=${head.top.value} head.bottom=${head.bottom.value}")
         assertEquals(
             "the head of the answer should sit just under the top bar",
             64f,
