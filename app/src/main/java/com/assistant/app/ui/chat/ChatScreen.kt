@@ -17,6 +17,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -280,32 +281,40 @@ fun ChatScreen(
 
     val density = LocalDensity.current
     val followTolerancePx = with(density) { BOUNCE_TOLERANCE.toPx() }
+    val pinnedHeadPx = with(density) { TOP_BAR_HEIGHT.roundToPx() }
     val contentBottomPaddingPx = with(density) { MESSAGE_LIST_BOTTOM_PADDING.roundToPx() }
 
-    val followLatest = remember(listState, followTolerancePx) {
-        derivedStateOf { listState.isNearBottom(followTolerancePx) }
+    val atLatest = remember(listState, followTolerancePx, pinnedHeadPx, contentBottomPaddingPx) {
+        derivedStateOf {
+            listState.isNearBottom(followTolerancePx, pinnedHeadPx, contentBottomPaddingPx)
+        }
+    }
+    val followLatest = remember { mutableStateOf(true) }
+    LaunchedEffect(listState, atLatest) {
+        listState.interactionSource.interactions.collect { interaction ->
+            if (interaction is DragInteraction.Stop || interaction is DragInteraction.Cancel) {
+                if (listState.isScrollInProgress) {
+                    snapshotFlow { listState.isScrollInProgress }.first { !it }
+                }
+                followLatest.value = atLatest.value
+            }
+        }
     }
     val arrivedMessageCount = state.messages.size
     LaunchedEffect(arrivedMessageCount) {
         if (followLatest.value && !listState.isScrollInProgress) listState.scrollToItem(0)
     }
 
-    LaunchedEffect(listState, contentBottomPaddingPx) {
+    LaunchedEffect(listState, pinnedHeadPx, contentBottomPaddingPx) {
         snapshotFlow {
-            val info = listState.layoutInfo
-            val newest = info.visibleItemsInfo.firstOrNull { it.index == 0 }
-            if (!followLatest.value || newest == null) {
-                null
-            } else {
-                val contentHeight =
-                    (info.viewportSize.height - contentBottomPaddingPx).coerceAtLeast(0)
-                (newest.size - contentHeight).coerceAtLeast(0)
+            if (!followLatest.value || listState.isScrollInProgress) 0
+            else {
+                listState.headPinOffset(pinnedHeadPx, contentBottomPaddingPx) -
+                    listState.firstVisibleItemScrollOffset
             }
-        }.collect { anchor ->
-            if (anchor != null && anchor != listState.firstVisibleItemScrollOffset &&
-                !listState.isScrollInProgress
-            ) {
-                listState.scrollToItem(0, anchor)
+        }.collect { delta ->
+            if (delta > 0 && followLatest.value) {
+                listState.scrollToItem(0, listState.headPinOffset(pinnedHeadPx, contentBottomPaddingPx))
             }
         }
     }
@@ -445,10 +454,6 @@ fun ChatScreen(
                         viewModel.send(state.draft)
                     }
                     editingMessageId = null
-
-                    listScope.launch {
-                        listState.scrollToItem(0)
-                    }
                     keyboard?.hide()
                 },
                 onStop = viewModel::stop,
@@ -575,7 +580,13 @@ fun ChatScreen(
                                 val scrollLabel = stringResource(R.string.cd_scroll_to_latest)
                                 Surface(
                                     onClick = {
-                                        listScope.launch { listState.animateScrollToItem(0) }
+                                        followLatest.value = true
+                                        listScope.launch {
+                                            listState.animateScrollToItem(
+                                                0,
+                                                listState.headPinOffset(pinnedHeadPx, contentBottomPaddingPx),
+                                            )
+                                        }
                                     },
                                     shape = CircleShape,
                                     color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -665,7 +676,24 @@ fun ChatScreen(
     }
 }
 
-internal fun LazyListState.isNearBottom(thresholdPx: Float): Boolean =
-    firstVisibleItemIndex == 0 && firstVisibleItemScrollOffset <= thresholdPx
+internal fun LazyListState.headPinOffset(pinnedTopPx: Int, bottomPaddingPx: Int): Int {
+    val info = layoutInfo
+    val newest = info.visibleItemsInfo.firstOrNull { it.index == 0 } ?: return 0
+    val contentHeight = info.viewportSize.height - bottomPaddingPx - pinnedTopPx
+    return (newest.size - contentHeight).coerceAtLeast(0)
+}
+
+internal fun LazyListState.isNearBottom(
+    thresholdPx: Float,
+    pinnedTopPx: Int = 0,
+    bottomPaddingPx: Int = 0,
+): Boolean {
+    if (firstVisibleItemIndex != 0) return false
+    if (firstVisibleItemScrollOffset <= thresholdPx) return true
+    val pin = headPinOffset(pinnedTopPx, bottomPaddingPx)
+    if (pin <= 0) return false
+    val drift = firstVisibleItemScrollOffset - pin
+    return drift >= -thresholdPx && drift <= thresholdPx
+}
 
 private val BOUNCE_TOLERANCE = 32.dp
