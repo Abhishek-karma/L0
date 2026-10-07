@@ -13,7 +13,7 @@ L0 communicates directly from the Android device to the configured AI provider e
 
 ## Features
 
-- **Streaming conversation**: Low-latency token streaming with stop, retry, regenerate, and edit-and-resend capabilities. A per-turn lock prevents a double-tapped send from producing two turns.
+- **Streaming conversation**: Low-latency token streaming with stop, retry, regenerate, and edit-and-resend capabilities. A per-turn lock prevents a double-tapped send from producing two turns. Long answers keep the view pinned to the answer's head as they grow; scrolling away pauses following, and returning to the latest message resumes it.
 - **Answer versions**: Regenerating an answer preserves previous variations, switchable on the message card. Regeneration never destroys the previous answer if the new request cannot be built.
 - **Follow-up suggestions**: Contextual follow-up suggestions generated automatically after answers (with natural-language refusal and error detection). Tapping a suggestion stages it in the composer for review without auto-sending. Generation runs on its own budget so a slow or reasoning-heavy model still produces suggestions.
 - **AI providers**:
@@ -73,7 +73,7 @@ Build minified release APK:
 
 GitHub Actions workflows:
 - **CI** (`.github/workflows/ci.yml`): Runs lint, unit tests, and builds `L0-debug.apk` on pushes and pull requests to `main`.
-- **Release** (`.github/workflows/release.yml`): Triggered by pushing a version tag (e.g. `v0.0.2`) or manual dispatch. The tag supplies the version name and a derived `versionCode` (`MAJOR * 10000 + MINOR * 100 + PATCH`), so the in-repo `versionName` is only a fallback for untagged dispatch. Runs release unit tests, lint, signs the release APK, verifies signature with `apksigner`, computes SHA-256 checksums, and attaches `L0-<version>.apk` to the GitHub release.
+- **Release** (`.github/workflows/release.yml`): Triggered by pushing a version tag (e.g. `v0.0.3`) or manual dispatch. The tag supplies the version name and a derived `versionCode` (`MAJOR * 10000 + MINOR * 100 + PATCH`), so the in-repo `versionName` is only a fallback for untagged dispatch. The matching `## [x.y.z]` section of `CHANGELOG.md` becomes the release body (GitHub's generated change list is appended below it); the release fails fast if the changelog has no section for the tagged version. Runs release unit tests, lint, signs the release APK, verifies signature with `apksigner`, computes SHA-256 checksums, and attaches `L0-<version>.apk` to the GitHub release.
 
 For local signed release builds, configure `keystore.properties` at the repository root with:
 ```properties

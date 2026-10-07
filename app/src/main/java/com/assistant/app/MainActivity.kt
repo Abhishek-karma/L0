@@ -30,7 +30,7 @@ import com.assistant.app.ui.theme.ChatTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
 
-        setTheme(R.style.Theme_InletChat)
+        setTheme(R.style.Theme_L0)
         super.onCreate(savedInstanceState)
 
         enableEdgeToEdge()

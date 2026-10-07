@@ -380,6 +380,42 @@ class ChatViewModelTest {
     }
 
     @Test
+    fun `staged attachment whose file vanished fails the send without an empty attachment`() = runChatTest(
+        script = listOf(ScriptedEvent.Emit("I see it")),
+    ) { viewModel, provider, repository ->
+        val stagedFile = File.createTempFile("vanishing", ".jpg").apply {
+            deleteOnExit()
+            writeText("not really a jpeg")
+        }
+        repository.addPendingAttachments(
+            listOf(
+                com.assistant.app.llm.model.UiAttachment(
+                    id = "img1",
+                    kind = com.assistant.app.llm.model.UiAttachment.Kind.IMAGE,
+                    displayName = "vanishing.jpg",
+                    mime = "image/jpeg",
+                    path = stagedFile.absolutePath,
+                    sizeBytes = stagedFile.length(),
+                ),
+            ),
+        )
+
+        stagedFile.delete()
+        viewModel.send("Look at this")
+        advanceUntilIdle()
+
+        assertTrue(provider.requests.isEmpty())
+        val status = viewModel.uiState.value.status
+        assertTrue(status is ChatStatus.Error)
+        assertTrue(
+            (status as ChatStatus.Error).message.contains("Could not read \"vanishing.jpg\""),
+        )
+        assertEquals(1, viewModel.uiState.value.messages.size)
+        assertEquals("Look at this", viewModel.uiState.value.messages[0].content)
+        assertEquals(emptyList<com.assistant.app.llm.model.UiAttachment>(), viewModel.uiState.value.pendingAttachments)
+    }
+
+    @Test
     fun `reasoning streams into the message and clears on regenerate`() = runChatTest(
         script = listOf(ScriptedEvent.Reasoning("thinking"), ScriptedEvent.Emit("Hello")),
     ) { viewModel, provider, _ ->

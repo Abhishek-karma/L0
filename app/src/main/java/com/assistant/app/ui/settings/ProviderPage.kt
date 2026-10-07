@@ -506,6 +506,15 @@ internal fun ProviderEditor(
             }
         }
 
+        state.credentialNotice?.let { notice ->
+            Text(
+                text = notice,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = AppSpacing.xs),
+            )
+        }
+
         state.formError?.let { error ->
             Text(
                 text = error,

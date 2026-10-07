@@ -2,6 +2,19 @@
 
 All notable changes to L0 are documented here.
 
+## [0.0.3] - 2026-10-06
+
+### Fixed
+
+- **Long streaming answers broke auto-follow.** Once an answer grew taller than the chat area, following stopped: the "at latest" check misread the reversed list's scroll offset, so the moment the reader was placed at the pinned reading position the app believed they had scrolled away. The reader now keeps following a growing answer for its entire length, at a stable position with the answer's head held just below the top bar.
+- **A completed answer nudged the view up.** The action row that appears when streaming ends pushed the answer text up by its own height and silently ended following. That growth is now absorbed by the follow logic instead of fighting the reader.
+- **Sending always jumped to the newest message,** even when the reader had scrolled into history to compose. New-message jumps are now gated on actually following the latest end.
+
+### Changed
+
+- **"At latest" now recognises both rest points of the reversed conversation list** — the newest tail, and the pinned head of an answer taller than the viewport — each with the existing bounce tolerance, so the scroll-to-latest affordance no longer appears while the reader is at the newest content.
+- **Scroll-to-latest lands at the reading position** (the pinned head of a tall answer) instead of the tail, avoiding a second visible snap after the animation.
+
 ## [0.0.2] - 2026-10-04
 
 ### Added

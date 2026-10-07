@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.InletChat" parent="android:Theme.Material.Light.NoActionBar">
+    <style name="Theme.L0" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">@color/splash_background</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
 
-    <style name="Theme.InletChat.Splash" parent="Theme.InletChat">
+    <style name="Theme.L0.Splash" parent="Theme.L0">
         <item name="android:windowBackground">@drawable/launch_splash</item>
     </style>
 </resources>

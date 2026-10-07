@@ -210,7 +210,7 @@
     <string name="onboarding_cap_files">Attach text files</string>
 
     <string name="search_title">Search</string>
-    <string name="search_hint">Search chats…</string>
+    <string name="search_hint">Search conversation titles…</string>
     <string name="search_recent">Recent</string>
     <string name="search_results">Results</string>
     <string name="search_empty">No conversations match.</string>

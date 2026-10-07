@@ -19,53 +19,65 @@ interface SecureKeyStore {
     fun legacyApiKey(): String?
 
     fun deleteLegacyApiKey()
+
+    val isAvailable: Boolean
+
+    val needsCredentialReentry: Boolean
 }
 
 class EncryptedSecureKeyStore(context: Context) : SecureKeyStore {
 
     private val appContext = context.applicationContext
 
-    private val preferences: SharedPreferences? by lazy {
+    internal class Opened(val preferences: SharedPreferences, val recoveredFromCorruption: Boolean)
+
+    private val opened: Opened? by lazy {
         createWithRecovery(::createEncrypted)
     }
 
-    override fun apiKey(id: Long): String? = preferences?.getString(keyFor(id), null)
+    override val isAvailable: Boolean get() = opened != null
+
+    override val needsCredentialReentry: Boolean get() = opened?.recoveredFromCorruption == true
+
+    override fun apiKey(id: Long): String? = opened?.preferences?.getString(keyFor(id), null)
 
     @SuppressLint("ApplySharedPref")
     override fun setApiKey(id: Long, value: String?): Boolean {
-        val prefs = preferences ?: return false
+        val prefs = opened?.preferences ?: return false
         prefs.edit().apply {
             if (value == null) remove(keyFor(id)) else putString(keyFor(id), value)
         }.commit()
         return true
     }
 
-    override fun legacyApiKey(): String? = preferences?.getString(KEY_API_KEY, null)
+    override fun legacyApiKey(): String? = opened?.preferences?.getString(KEY_API_KEY, null)
 
     @SuppressLint("ApplySharedPref")
     override fun deleteLegacyApiKey() {
-        preferences?.edit()?.remove(KEY_API_KEY)?.commit()
+        opened?.preferences?.edit()?.remove(KEY_API_KEY)?.commit()
     }
 
     private fun keyFor(id: Long): String = "${KEY_API_KEY}_$id"
 
-    internal fun createWithRecovery(create: () -> SharedPreferences): SharedPreferences? =
+    internal fun createWithRecovery(create: () -> SharedPreferences): Opened? =
         try {
-            create()
+            Opened(create(), recoveredFromCorruption = false)
         } catch (e: Exception) {
             if (e is GeneralSecurityException || e is IOException) {
-                resetAndRetry(e, create)
+                quarantineAndRetry(e, create)
             } else {
                 throw e
             }
         }
 
-    private fun resetAndRetry(first: Exception, create: () -> SharedPreferences): SharedPreferences? {
+    // The unreadable file is quarantined, not deleted: the ciphertext stays on disk
+    // for inspection while the app gets a fresh, working store and re-enters credentials.
+    private fun quarantineAndRetry(first: Exception, create: () -> SharedPreferences): Opened? {
 
-        Log.w(TAG, "Encrypted preferences unreadable (${first.javaClass.simpleName}); resetting")
-        prefsFile().delete()
+        Log.w(TAG, "Encrypted preferences unreadable (${first.javaClass.simpleName}); quarantining the unreadable file")
+        quarantine()
         return try {
-            create()
+            Opened(create(), recoveredFromCorruption = true)
         } catch (e: Exception) {
             if (e is GeneralSecurityException || e is IOException) {
                 Log.w(TAG, "Encrypted preferences unavailable (${e.javaClass.simpleName}); disabled until next launch")
@@ -89,7 +101,16 @@ class EncryptedSecureKeyStore(context: Context) : SecureKeyStore {
         )
     }
 
-    internal fun prefsFile(): File =        File(appContext.applicationInfo.dataDir, "shared_prefs/$PREFS_FILE.xml")
+    internal fun quarantine() {
+        val prefs = prefsFile()
+        if (!prefs.exists()) return
+        val target = File(prefs.parentFile, "$PREFS_FILE.xml.corrupt")
+        if (target.exists()) target.delete()
+        prefs.renameTo(target)
+    }
+
+    internal fun prefsFile(): File =
+        File(appContext.applicationInfo.dataDir, "shared_prefs/$PREFS_FILE.xml")
 
     private companion object {
         const val TAG = "EncryptedKeyStore"

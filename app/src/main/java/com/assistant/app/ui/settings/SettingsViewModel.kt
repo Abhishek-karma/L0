@@ -77,6 +77,7 @@ data class SettingsUiState(
     val isSaving: Boolean = false,
     val isTesting: Boolean = false,
     val formError: String? = null,
+    val credentialNotice: String? = null,
     val connectionOutcome: ConnectionOutcome? = null,
     val updateStatus: UpdateStatus = UpdateStatus.Idle,
     val autoCheckUpdates: Boolean = true,
@@ -131,6 +132,11 @@ class SettingsViewModel(
                     appearance = appearance,
                     textSize = textSize,
                     reasoningVisible = reasoningVisible,
+                    credentialNotice = if (providerStore.credentialsNeedReentry) {
+                        CREDENTIAL_REENTRY_NOTICE
+                    } else {
+                        null
+                    },
                     isLoaded = true,
                 )
             }
@@ -325,6 +331,9 @@ class SettingsViewModel(
                 }
             } catch (e: CancellationException) {
                 throw e
+            } catch (e: IllegalStateException) {
+                _uiState.update { it.copy(isSaving = false, formError = e.message ?: SAVE_FAILED) }
+                return@launch
             } catch (_: Exception) {
                 _uiState.update { it.copy(isSaving = false, formError = SAVE_FAILED) }
                 return@launch
@@ -614,6 +623,10 @@ class SettingsViewModel(
         const val PING_MESSAGE = "ping"
         const val SAVE_FAILED = "Could not save settings."
     const val DELETE_FAILED = "Could not delete this provider."
+
+        const val CREDENTIAL_REENTRY_NOTICE =
+            "Encrypted credential storage was repaired after becoming unreadable. " +
+                "Saved API keys could not be recovered — re-enter the key for each provider."
 
         const val TEST_TIMEOUT_MS = 30_000L
     }

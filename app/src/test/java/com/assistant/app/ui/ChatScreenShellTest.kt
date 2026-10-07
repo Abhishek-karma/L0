@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
@@ -624,6 +625,43 @@ class ChatScreenShellTest {
 
         composeRule.runOnIdle { runBlocking { listState.scrollToItem(0, 280) } }
         composeRule.runOnIdle { assertFalse(listState.isNearBottom(32f)) }
+    }
+
+    @Test
+    fun viewportResizeRePinsTheAnswerHead() {
+        var listWidth by mutableStateOf(320.dp)
+        composeRule.setContent {
+            ChatTheme {
+                Box(Modifier.width(listWidth)) {
+                    ChatScreen(
+                        onOpenSettings = {},
+                        viewModelFactory = ScriptedChatFixture(
+                            listOf(ScriptedEvent.Emit(LONG_STREAM)),
+                        ).factory,
+                    )
+                }
+            }
+        }
+
+        composeRule.onNodeWithTag(ComposerInputTag).performTextInput("Hi")
+        composeRule.onNodeWithContentDescription("Send").performClick()
+        composeRule.waitUntil {
+            composeRule.onAllNodesWithText(LONG_STREAM).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.waitForIdle()
+        val headBefore = composeRule.onNodeWithText(LONG_STREAM).getUnclippedBoundsInRoot()
+        assertEquals(64f, headBefore.top.value, 1f)
+
+        composeRule.runOnIdle { listWidth = 200.dp }
+        composeRule.waitForIdle()
+
+        val headAfter = composeRule.onNodeWithText(LONG_STREAM).getUnclippedBoundsInRoot()
+        assertEquals(
+            "the pinned head should follow a viewport geometry change (as with the keyboard)",
+            64f,
+            headAfter.top.value,
+            1f,
+        )
     }
 
     @Test

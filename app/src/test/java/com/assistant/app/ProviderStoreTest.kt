@@ -77,6 +77,42 @@ class ProviderStoreTest {
     }
 
     @Test
+    fun failedKeyStorageOnCreateLeavesNoProviderBehind() = runTest {
+        keyStore.failNextSetApiKey = true
+
+        val error = runCatching { addProvider(key = "sk-never-stored") }
+
+        assertTrue(error.exceptionOrNull() is IllegalStateException)
+        assertTrue(store.providers().firstBounded().isEmpty())
+        assertNull(store.activeProvider().firstBounded())
+
+        val id = addProvider(key = "sk-after-recovery")
+        assertEquals(id, store.activeProvider().firstBounded()?.id)
+        assertEquals("sk-after-recovery", store.apiKey(id))
+    }
+
+    @Test
+    fun failedKeyStorageOnUpdateLeavesProviderAndModelsIntact() = runTest {
+        val id = addProvider(key = "sk-original")
+
+        keyStore.failNextSetApiKey = true
+        val error = runCatching {
+            store.updateProvider(
+                id,
+                validDraft.copy(name = "Renamed"),
+                "sk-new",
+                listOf(ModelDraft(model = "new-model", isActive = true)),
+            )
+        }
+
+        assertTrue(error.exceptionOrNull() is IllegalStateException)
+        assertEquals("OpenAI", store.providers().firstBounded().single { it.id == id }.name)
+        assertEquals("sk-original", store.apiKey(id))
+        assertEquals(listOf("gpt-4o-mini"), store.modelsOf(id).map { it.model })
+        assertEquals("gpt-4o-mini", store.activeModel(id)?.model)
+    }
+
+    @Test
     fun providerStoresManyModelsWithOneActive() = runTest {
         val id = addProvider(
             models = listOf(

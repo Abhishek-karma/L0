@@ -39,6 +39,8 @@ class ProviderStore(
 
     fun providers(): Flow<List<ProviderEntity>> = db.providerDao().observeAll()
 
+    val credentialsNeedReentry: Boolean get() = keyStore.needsCredentialReentry
+
     fun providersWithModel(): Flow<List<ProviderWithActiveModel>> = db.providerDao().observeAllWithModel()
 
     fun activeProvider(): Flow<ProviderEntity?> = db.providerDao().observeActive()
@@ -132,18 +134,20 @@ class ProviderStore(
 
     suspend fun addProvider(draft: ProviderDraft, apiKey: String?, models: List<ModelDraft>): Long {
         val normalizedUrl = normalizeBaseUrl(draft.baseUrl)
-        val id = db.providerDao().insert(
-            ProviderEntity(
-                name = draft.name.trim(),
-                baseUrl = normalizedUrl,
-            ),
-        )
-        saveModels(id, models)
-        if (!apiKey.isNullOrBlank()) {
-            val stored = withContext(ioDispatcher) { keyStore.setApiKey(id, apiKey) }
-            check(stored) { ERROR_KEYSTORE_UNAVAILABLE }
-        }
+        var id = 0L
+        // The API key is written inside the database transaction: if it cannot be stored,
+        // the provider and its models are rolled back instead of surviving keyless.
         db.withTransaction {
+            id = db.providerDao().insert(
+                ProviderEntity(
+                    name = draft.name.trim(),
+                    baseUrl = normalizedUrl,
+                ),
+            )
+            saveModels(id, models)
+            if (!apiKey.isNullOrBlank()) {
+                check(keyStore.setApiKey(id, apiKey)) { ERROR_KEYSTORE_UNAVAILABLE }
+            }
             if (db.providerDao().active() == null) {
                 db.providerDao().setActive(id)
             }
@@ -157,8 +161,10 @@ class ProviderStore(
             val stored = withContext(ioDispatcher) { keyStore.setApiKey(id, apiKey) }
             check(stored) { ERROR_KEYSTORE_UNAVAILABLE }
         }
-        db.providerDao().update(id, draft.name.trim(), normalizedUrl)
-        saveModels(id, models)
+        db.withTransaction {
+            db.providerDao().update(id, draft.name.trim(), normalizedUrl)
+            saveModels(id, models)
+        }
     }
 
     private suspend fun saveModels(providerId: Long, models: List<ModelDraft>) {
