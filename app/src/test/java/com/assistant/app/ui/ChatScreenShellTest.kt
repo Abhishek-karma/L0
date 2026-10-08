@@ -40,7 +40,6 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.printToString
 import com.assistant.app.R
 import com.assistant.app.ui.chat.ChatScreen
-import com.assistant.app.ui.chat.isNearBottom
 import com.assistant.app.llm.ScriptedEvent
 import com.assistant.app.ui.components.ChatModelOption
 import com.assistant.app.ui.components.ComposerInputTag
@@ -166,130 +165,6 @@ class ChatScreenShellTest {
     }
 
     @Test
-    fun onlyBounceSizedDriftStillCountsAsBeingAtTheBottom() {
-        lateinit var listState: LazyListState
-        composeRule.setContent {
-            ChatTheme {
-                listState = rememberLazyListState()
-                LazyColumn(
-                    state = listState,
-                    reverseLayout = true,
-                    modifier = Modifier.size(160.dp),
-                ) {
-                    items(20) { Box(Modifier.height(80.dp)) }
-                }
-            }
-        }
-
-        composeRule.runOnIdle { assertTrue(listState.isNearBottom(0f)) }
-
-        composeRule.runOnIdle { runBlocking { listState.scrollBy(20f) } }
-        composeRule.runOnIdle { assertTrue(listState.isNearBottom(64f)) }
-
-        composeRule.runOnIdle { runBlocking { listState.scrollBy(400f) } }
-        composeRule.runOnIdle { assertFalse(listState.isNearBottom(64f)) }
-    }
-
-    @Test
-    fun reverseLayoutPinsNewestMessageWhileItGrows() {
-        lateinit var listState: LazyListState
-        var newestHeight by mutableStateOf(80.dp)
-        val bottoms = mutableMapOf<Int, Float>()
-
-        composeRule.setContent {
-            ChatTheme {
-                listState = rememberLazyListState()
-                LazyColumn(
-                    state = listState,
-                    reverseLayout = true,
-                    modifier = Modifier.size(160.dp),
-                ) {
-                    items(8) { index ->
-                        Box(
-                            Modifier
-                                .fillMaxWidth()
-                                .height(if (index == 0) newestHeight else 80.dp)
-                                .onGloballyPositioned { bottoms[index] = it.boundsInRoot().bottom },
-                        )
-                    }
-                }
-            }
-        }
-
-        val pinnedBefore = bottoms[0]
-        composeRule.runOnIdle { newestHeight = 240.dp }
-
-        composeRule.runOnIdle {
-            assertEquals(0, listState.firstVisibleItemIndex)
-            assertEquals(0, listState.firstVisibleItemScrollOffset)
-            assertEquals(pinnedBefore, bottoms[0])
-        }
-    }
-
-    @Test
-    fun growingMessageDoesNotMoveReaderWhoScrolledBack() {
-        lateinit var listState: LazyListState
-        var newestHeight by mutableStateOf(80.dp)
-        val tops = mutableMapOf<Int, Float>()
-
-        composeRule.setContent {
-            ChatTheme {
-                listState = rememberLazyListState()
-                LazyColumn(
-                    state = listState,
-                    reverseLayout = true,
-                    modifier = Modifier.size(160.dp),
-                ) {
-                    items(8) { index ->
-                        Box(
-                            Modifier
-                                .fillMaxWidth()
-                                .height(if (index == 0) newestHeight else 80.dp)
-                                .onGloballyPositioned { tops[index] = it.boundsInRoot().top },
-                        )
-                    }
-                }
-            }
-        }
-
-        composeRule.runOnIdle { runBlocking { listState.scrollBy(400f) } }
-        val anchorIndex = listState.firstVisibleItemIndex
-        val anchorTop = tops[anchorIndex]
-        assertTrue("reader never left the bottom", anchorIndex > 0)
-
-        composeRule.runOnIdle { newestHeight = 320.dp }
-
-        composeRule.runOnIdle {
-            assertEquals(anchorIndex, listState.firstVisibleItemIndex)
-            assertEquals(anchorTop, tops[anchorIndex])
-        }
-    }
-
-    @Test
-    fun programmaticScrollOverridesReaderPositionSoItMustStayGated() {
-        lateinit var listState: LazyListState
-        composeRule.setContent {
-            ChatTheme {
-                listState = rememberLazyListState()
-                LazyColumn(
-                    state = listState,
-                    reverseLayout = true,
-                    modifier = Modifier.size(160.dp),
-                ) {
-                    items(40) { Box(Modifier.height(80.dp)) }
-                }
-            }
-        }
-
-        composeRule.runOnIdle { runBlocking { listState.scrollBy(600f) } }
-        val readerIndex = listState.firstVisibleItemIndex
-        assertTrue("reader never left the bottom", readerIndex > 0)
-
-        composeRule.runOnIdle { runBlocking { listState.scrollToItem(0) } }
-        composeRule.runOnIdle { assertEquals(0, listState.firstVisibleItemIndex) }
-    }
-
-    @Test
     fun drawerSwitcherListsEverySavedModelAndSelectsOne() {
         var selectedId: Long? = null
         val models = listOf(
@@ -390,13 +265,13 @@ class ChatScreenShellTest {
     }
 
     @Test
-    fun anAnswerTallerThanTheChatAreaHoldsItsHeadInsteadOfItsTail() {
+    fun sendingAMessagePositionsItBelowTheTopBarWithTheAnswerStreamingBelow() {
         composeRule.setContent {
             ChatTheme {
                 ChatScreen(
                     onOpenSettings = {},
                     viewModelFactory = ScriptedChatFixture(
-                        listOf(ScriptedEvent.Emit(LONG_STREAM)),
+                        listOf(ScriptedEvent.Emit(PARAGRAPH_ANSWER)),
                     ).factory,
                 )
             }
@@ -405,29 +280,38 @@ class ChatScreenShellTest {
         composeRule.onNodeWithTag(ComposerInputTag).performTextInput("Hi")
         composeRule.onNodeWithContentDescription("Send").performClick()
         composeRule.waitUntil {
-            composeRule.onAllNodesWithText(LONG_STREAM).fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithText("Paragraph 60 of", substring = true)
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.waitUntil {
+            composeRule.onAllNodesWithContentDescription(
+                composeRule.activity.getString(R.string.menu_copy),
+            ).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.waitForIdle()
 
-        val head = composeRule.onNodeWithText(LONG_STREAM).getUnclippedBoundsInRoot()
+        val userBubble = composeRule.onNodeWithText("Hi").getUnclippedBoundsInRoot()
         assertEquals(
-            "the head of the answer should sit just under the top bar",
+            "the sent message should sit just below the top bar",
             64f,
-            head.top.value,
+            userBubble.top.value,
             1f,
         )
+        val answerHead = composeRule
+            .onNodeWithText("Paragraph 1 of", substring = true)
+            .getUnclippedBoundsInRoot()
         assertTrue(
-            "the tail of the answer should be past the chat area",
-            head.bottom.value > head.top.value + 400f,
+            "the answer should stream below the message",
+            answerHead.top.value > userBubble.bottom.value,
         )
         composeRule.onNodeWithContentDescription(
             composeRule.activity.getString(R.string.cd_scroll_to_latest),
-        ).assertDoesNotExist()
+        ).assertIsDisplayed()
     }
 
     @Test
-    fun longStreamingAnswerKeepsFollowingWhileTheReaderStaysAtLatest() {
-        val streamedAnswer = (1..60).joinToString("\n") {
+    fun streamingTokensDoNotMoveTheViewport() {
+        val streamedAnswer = (1..60).joinToString("\n\n") {
             "Streamed paragraph $it of a reply long enough to overflow the chat area."
         }
         composeRule.setContent {
@@ -444,36 +328,40 @@ class ChatScreenShellTest {
         composeRule.onNodeWithTag(ComposerInputTag).performTextInput("Hi")
         composeRule.onNodeWithContentDescription("Send").performClick()
         composeRule.waitUntil {
-            composeRule.onAllNodesWithText(streamedAnswer).fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithText("Hi").fetchSemanticsNodes().isNotEmpty()
+        }
+        val bubbleBefore = composeRule.onNodeWithText("Hi").getUnclippedBoundsInRoot()
+        composeRule.waitUntil {
+            composeRule.onAllNodesWithText("Streamed paragraph 60 of", substring = true)
+                .fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.waitForIdle()
 
-        val head = composeRule.onNodeWithText(streamedAnswer).getUnclippedBoundsInRoot()
+        val bubbleAfter = composeRule.onNodeWithText("Hi").getUnclippedBoundsInRoot()
         assertEquals(
-            "the head should still be pinned after streaming grew the answer in chunks",
-            64f,
-            head.top.value,
+            "streaming must not move the just-sent message",
+            bubbleBefore.top.value,
+            bubbleAfter.top.value,
             1f,
         )
-        composeRule.onNodeWithContentDescription(
-            composeRule.activity.getString(R.string.cd_scroll_to_latest),
-        ).assertDoesNotExist()
+        assertEquals(64f, bubbleAfter.top.value, 1f)
     }
 
     @Test
-    fun streamingDoesNotMoveAReaderWhoScrolledAway() {
-        val firstAnswer = (1..60).joinToString("\n\n") {
-            "Paragraph $it of a reply long enough to overflow the chat area."
-        }
-        val secondAnswer = (1..60).joinToString("\n\n") {
-            "Second answer line $it, streamed after the reader scrolled away."
-        }
-        val fixture = ScriptedChatFixture(listOf(ScriptedEvent.Emit(firstAnswer)))
+    fun userScrollDuringStreamingIsRespected() {
+        val part1 = (1..30).joinToString("\n\n") { "Streamed paragraph $it of a paced reply." }
+        val part2 = (31..60).joinToString("\n\n") { "Streamed paragraph $it of a paced reply." }
         composeRule.setContent {
             ChatTheme {
                 ChatScreen(
                     onOpenSettings = {},
-                    viewModelFactory = fixture.factory,
+                    viewModelFactory = ScriptedChatFixture(
+                        listOf(
+                            ScriptedEvent.Emit(part1),
+                            ScriptedEvent.Delay(4_000),
+                            ScriptedEvent.Emit(part2),
+                        ),
+                    ).factory,
                 )
             }
         }
@@ -481,66 +369,47 @@ class ChatScreenShellTest {
         composeRule.onNodeWithTag(ComposerInputTag).performTextInput("Hi")
         composeRule.onNodeWithContentDescription("Send").performClick()
         composeRule.waitUntil {
-            composeRule.onAllNodesWithText("Paragraph 60 of", substring = true)
+            composeRule.onAllNodesWithText("Streamed paragraph 30 of", substring = true)
                 .fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.waitUntil {
-            composeRule.onAllNodesWithContentDescription(
-                composeRule.activity.getString(R.string.menu_copy),
-            ).fetchSemanticsNodes().isNotEmpty()
-        }
-        composeRule.waitForIdle()
 
         composeRule.onRoot().performTouchInput {
-            swipe(start = Offset(center.x, center.y), end = Offset(center.x, center.y + 500f))
+            swipe(start = Offset(center.x, center.y + 200f), end = Offset(center.x, center.y - 200f))
         }
         composeRule.waitForIdle()
-
-        val scrollToLatest = composeRule.activity.getString(R.string.cd_scroll_to_latest)
         val anchor = composeRule
-            .onNodeWithText("Paragraph 30 of", substring = true)
+            .onNodeWithText("Streamed paragraph 20 of", substring = true)
             .getUnclippedBoundsInRoot()
-        composeRule.onNodeWithContentDescription(scrollToLatest).assertIsDisplayed()
 
-        fixture.provider.script = listOf(
-            ScriptedEvent.Emit(secondAnswer),
-            ScriptedEvent.Delay(60_000),
-        )
-        composeRule.onNodeWithTag(ComposerInputTag).performTextInput("Again")
-        composeRule.onNodeWithContentDescription("Send").performClick()
-        composeRule.waitUntil {
-            composeRule.onAllNodesWithContentDescription(
-                composeRule.activity.getString(R.string.cd_stop),
-            ).fetchSemanticsNodes().isNotEmpty()
+        composeRule.waitUntil(10_000) {
+            composeRule.onAllNodesWithText("Streamed paragraph 60 of", substring = true)
+                .fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.waitForIdle()
 
         val afterStreaming = composeRule
-            .onNodeWithText("Paragraph 30 of", substring = true)
+            .onNodeWithText("Streamed paragraph 20 of", substring = true)
             .getUnclippedBoundsInRoot()
         assertEquals(
-            "streaming a new answer must not move the scrolled-away reader",
+            "tokens arriving after the reader scrolled must not move the viewport",
             anchor.top.value,
             afterStreaming.top.value,
             1f,
         )
-        composeRule.onNodeWithContentDescription(scrollToLatest).assertIsDisplayed()
+        composeRule.onNodeWithContentDescription(
+            composeRule.activity.getString(R.string.cd_scroll_to_latest),
+        ).assertIsDisplayed()
     }
 
     @Test
-    fun returningToLatestResumesFollowing() {
-        val firstAnswer = (1..60).joinToString("\n\n") {
-            "Paragraph $it of a reply long enough to overflow the chat area."
-        }
-        val secondAnswer = (1..60).joinToString("\n\n") {
-            "Second answer line $it, streamed after the reader returned."
-        }
-        val fixture = ScriptedChatFixture(listOf(ScriptedEvent.Emit(firstAnswer)))
+    fun downArrowJumpsToTheLatestOnce() {
         composeRule.setContent {
             ChatTheme {
                 ChatScreen(
                     onOpenSettings = {},
-                    viewModelFactory = fixture.factory,
+                    viewModelFactory = ScriptedChatFixture(
+                        listOf(ScriptedEvent.Emit(PARAGRAPH_ANSWER)),
+                    ).factory,
                 )
             }
         }
@@ -555,11 +424,6 @@ class ChatScreenShellTest {
             composeRule.onAllNodesWithContentDescription(
                 composeRule.activity.getString(R.string.menu_copy),
             ).fetchSemanticsNodes().isNotEmpty()
-        }
-        composeRule.waitForIdle()
-
-        composeRule.onRoot().performTouchInput {
-            swipe(start = Offset(center.x, center.y), end = Offset(center.x, center.y + 200f))
         }
         composeRule.waitForIdle()
 
@@ -571,97 +435,124 @@ class ChatScreenShellTest {
                 .fetchSemanticsNodes().isEmpty()
         }
 
-        fixture.provider.script = listOf(ScriptedEvent.Emit(secondAnswer))
-        composeRule.onNodeWithTag(ComposerInputTag).performTextInput("Again")
-        composeRule.onNodeWithContentDescription("Send").performClick()
-        composeRule.waitUntil {
-            composeRule.onAllNodesWithText("Second answer line 60,", substring = true)
-                .fetchSemanticsNodes().isNotEmpty()
-        }
+        composeRule.onNodeWithText("Paragraph 60 of", substring = true).assertIsDisplayed()
         composeRule.waitForIdle()
-
-        val head = composeRule
-            .onNodeWithText("Second answer line 1,", substring = true)
-            .getUnclippedBoundsInRoot()
-        assertEquals(
-            "the head of the new answer should be pinned again after returning to latest",
-            64f,
-            head.top.value,
-            1f,
-        )
         composeRule.onNodeWithContentDescription(scrollToLatest).assertDoesNotExist()
     }
 
     @Test
-    fun headPinnedPositionInsideTallNewestMessageCountsAsAtLatest() {
-        lateinit var listState: LazyListState
+    fun streamingAfterTheDownArrowDoesNotMoveTheViewport() {
+        val part1 = (1..30).joinToString("\n\n") { "Streamed paragraph $it of a paced reply." }
+        val part2 = (31..60).joinToString("\n\n") { "Streamed paragraph $it of a paced reply." }
         composeRule.setContent {
             ChatTheme {
-                listState = rememberLazyListState()
-                LazyColumn(
-                    state = listState,
-                    reverseLayout = true,
-                    modifier = Modifier.size(400.dp),
-                ) {
-                    items(8) { index ->
-                        Box(
-                            Modifier
-                                .fillMaxWidth()
-                                .height(if (index == 0) 600.dp else 80.dp),
-                        )
-                    }
-                }
-            }
-        }
-
-        composeRule.runOnIdle { runBlocking { listState.scrollToItem(0, 0) } }
-        composeRule.runOnIdle { assertTrue(listState.isNearBottom(32f)) }
-
-        composeRule.runOnIdle { runBlocking { listState.scrollToItem(0, 200) } }
-        composeRule.runOnIdle { assertTrue(listState.isNearBottom(32f)) }
-
-        composeRule.runOnIdle { runBlocking { listState.scrollToItem(0, 120) } }
-        composeRule.runOnIdle { assertFalse(listState.isNearBottom(32f)) }
-
-        composeRule.runOnIdle { runBlocking { listState.scrollToItem(0, 280) } }
-        composeRule.runOnIdle { assertFalse(listState.isNearBottom(32f)) }
-    }
-
-    @Test
-    fun viewportResizeRePinsTheAnswerHead() {
-        var listWidth by mutableStateOf(320.dp)
-        composeRule.setContent {
-            ChatTheme {
-                Box(Modifier.width(listWidth)) {
-                    ChatScreen(
-                        onOpenSettings = {},
-                        viewModelFactory = ScriptedChatFixture(
-                            listOf(ScriptedEvent.Emit(LONG_STREAM)),
-                        ).factory,
-                    )
-                }
+                ChatScreen(
+                    onOpenSettings = {},
+                    viewModelFactory = ScriptedChatFixture(
+                        listOf(
+                            ScriptedEvent.Emit(part1),
+                            ScriptedEvent.Delay(4_000),
+                            ScriptedEvent.Emit(part2),
+                        ),
+                    ).factory,
+                )
             }
         }
 
         composeRule.onNodeWithTag(ComposerInputTag).performTextInput("Hi")
         composeRule.onNodeWithContentDescription("Send").performClick()
         composeRule.waitUntil {
-            composeRule.onAllNodesWithText(LONG_STREAM).fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithText("Streamed paragraph 30 of", substring = true)
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+
+        val scrollToLatest = composeRule.activity.getString(R.string.cd_scroll_to_latest)
+        composeRule.onNodeWithContentDescription(scrollToLatest).assertIsDisplayed()
+        composeRule.onNodeWithContentDescription(scrollToLatest).performClick()
+        composeRule.waitUntil {
+            composeRule.onAllNodesWithContentDescription(scrollToLatest)
+                .fetchSemanticsNodes().isEmpty()
+        }
+        val tail = composeRule
+            .onNodeWithText("Streamed paragraph 30 of", substring = true)
+            .getUnclippedBoundsInRoot()
+
+        composeRule.waitUntil(10_000) {
+            composeRule.onAllNodesWithText("Streamed paragraph 60 of", substring = true)
+                .fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.waitForIdle()
-        val headBefore = composeRule.onNodeWithText(LONG_STREAM).getUnclippedBoundsInRoot()
-        assertEquals(64f, headBefore.top.value, 1f)
 
-        composeRule.runOnIdle { listWidth = 200.dp }
-        composeRule.waitForIdle()
-
-        val headAfter = composeRule.onNodeWithText(LONG_STREAM).getUnclippedBoundsInRoot()
+        val tailAfterStreaming = composeRule
+            .onNodeWithText("Streamed paragraph 30 of", substring = true)
+            .getUnclippedBoundsInRoot()
         assertEquals(
-            "the pinned head should follow a viewport geometry change (as with the keyboard)",
-            64f,
-            headAfter.top.value,
+            "tokens arriving after the one-shot jump must not move the viewport",
+            tail.top.value,
+            tailAfterStreaming.top.value,
             1f,
         )
+        composeRule.onNodeWithContentDescription(scrollToLatest).assertIsDisplayed()
+    }
+
+    @Test
+    fun nextMessageInALongConversationIsPositionedBelowTheTopBar() {
+        val secondAnswer = (1..60).joinToString("\n\n") {
+            "Second answer line $it, streamed below the new message."
+        }
+        val fixture = ScriptedChatFixture(listOf(ScriptedEvent.Emit(PARAGRAPH_ANSWER)))
+        composeRule.setContent {
+            ChatTheme {
+                ChatScreen(
+                    onOpenSettings = {},
+                    viewModelFactory = fixture.factory,
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag(ComposerInputTag).performTextInput("Hi")
+        composeRule.onNodeWithContentDescription("Send").performClick()
+        composeRule.waitUntil {
+            composeRule.onAllNodesWithText("Paragraph 60 of", substring = true)
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.waitUntil {
+            composeRule.onAllNodesWithContentDescription(
+                composeRule.activity.getString(R.string.menu_copy),
+            ).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.waitForIdle()
+
+        fixture.provider.script = listOf(ScriptedEvent.Emit(secondAnswer))
+        composeRule.onNodeWithTag(ComposerInputTag).performTextInput("Again")
+        composeRule.onNodeWithContentDescription("Send").performClick()
+        composeRule.waitUntil {
+            composeRule.onAllNodesWithText("Again").fetchSemanticsNodes().isNotEmpty()
+        }
+        val bubble = composeRule.onNodeWithText("Again").getUnclippedBoundsInRoot()
+        assertEquals(
+            "the new message should be positioned just below the top bar",
+            64f,
+            bubble.top.value,
+            1f,
+        )
+
+        composeRule.waitUntil {
+            composeRule.onAllNodesWithText("Second answer line 60,", substring = true)
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.waitForIdle()
+
+        val bubbleAfterStreaming = composeRule.onNodeWithText("Again").getUnclippedBoundsInRoot()
+        assertEquals(
+            "the new message must stay positioned while the answer streams below it",
+            64f,
+            bubbleAfterStreaming.top.value,
+            1f,
+        )
+        composeRule.onNodeWithContentDescription(
+            composeRule.activity.getString(R.string.cd_scroll_to_latest),
+        ).assertIsDisplayed()
     }
 
     @Test
@@ -694,9 +585,9 @@ class ChatScreenShellTest {
 
     private companion object {
 
-        val LONG_STREAM: String =
-            (1..60).joinToString("\n") {
-                "Paragraph $it of a reply long enough to fill the whole chat area."
+        val PARAGRAPH_ANSWER: String =
+            (1..60).joinToString("\n\n") {
+                "Paragraph $it of a reply long enough to overflow the chat area."
             }
 
         const val LONG_ANSWER =

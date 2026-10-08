@@ -17,7 +17,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.interaction.DragInteraction
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -110,8 +110,6 @@ import com.assistant.app.ui.theme.AppMotion
 import com.assistant.app.ui.theme.AppSpacing
 import com.assistant.app.ui.theme.AppShape
 import com.assistant.app.ui.theme.appTween
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -280,43 +278,76 @@ fun ChatScreen(
     val listScope = rememberCoroutineScope()
 
     val density = LocalDensity.current
-    val followTolerancePx = with(density) { BOUNCE_TOLERANCE.toPx() }
-    val pinnedHeadPx = with(density) { TOP_BAR_HEIGHT.roundToPx() }
     val contentBottomPaddingPx = with(density) { MESSAGE_LIST_BOTTOM_PADDING.roundToPx() }
 
-    val atLatest = remember(listState, followTolerancePx, pinnedHeadPx, contentBottomPaddingPx) {
+    val atLatest = remember(listState, contentBottomPaddingPx) {
         derivedStateOf {
-            listState.isNearBottom(followTolerancePx, pinnedHeadPx, contentBottomPaddingPx)
+            val info = listState.layoutInfo
+            val last = info.visibleItemsInfo.lastOrNull()
+            last != null && last.index == info.totalItemsCount - 1 &&
+                last.offset + last.size <= info.viewportSize.height - contentBottomPaddingPx
         }
-    }
-    val followLatest = remember { mutableStateOf(true) }
-    LaunchedEffect(listState, atLatest) {
-        listState.interactionSource.interactions.collect { interaction ->
-            if (interaction is DragInteraction.Stop || interaction is DragInteraction.Cancel) {
-                if (listState.isScrollInProgress) {
-                    snapshotFlow { listState.isScrollInProgress }.first { !it }
-                }
-                followLatest.value = atLatest.value
-            }
-        }
-    }
-    val arrivedMessageCount = state.messages.size
-    LaunchedEffect(arrivedMessageCount) {
-        if (followLatest.value && !listState.isScrollInProgress) listState.scrollToItem(0)
     }
 
-    LaunchedEffect(listState, pinnedHeadPx, contentBottomPaddingPx) {
-        snapshotFlow {
-            if (!followLatest.value || listState.isScrollInProgress) 0
-            else {
-                listState.headPinOffset(pinnedHeadPx, contentBottomPaddingPx) -
-                    listState.firstVisibleItemScrollOffset
-            }
-        }.collect { delta ->
-            if (delta > 0 && followLatest.value) {
-                listState.scrollToItem(0, listState.headPinOffset(pinnedHeadPx, contentBottomPaddingPx))
-            }
+    var pendingSendPositioning by remember { mutableStateOf(false) }
+    var sendBaselineIds by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var sendBaselineConversationId by remember { mutableStateOf<String?>(null) }
+    var pendingEditedMessageId by remember { mutableStateOf<String?>(null) }
+    var pendingJumpToBottom by remember { mutableStateOf(false) }
+
+    LaunchedEffect(pendingConversationId) {
+        if (pendingConversationId != null) {
+            pendingSendPositioning = false
+            pendingEditedMessageId = null
+            sendBaselineIds = emptySet()
+            sendBaselineConversationId = null
+            pendingJumpToBottom = true
+            viewModel.openConversation(pendingConversationId)
         }
+    }
+
+    val jumpToLatest: suspend () -> Unit = {
+        if (state.messages.isNotEmpty()) {
+            listState.scrollToItem(state.messages.lastIndex)
+            listState.scrollBy(1_000_000f)
+        }
+    }
+
+    LaunchedEffect(pendingJumpToBottom, state.messages.size) {
+        if (!pendingJumpToBottom || state.messages.isEmpty()) return@LaunchedEffect
+        pendingJumpToBottom = false
+        jumpToLatest()
+    }
+
+    val messageIds = state.messages.map { it.id }
+    val conversationId = state.conversationId
+    LaunchedEffect(pendingSendPositioning, messageIds, conversationId) {
+        if (!pendingSendPositioning) return@LaunchedEffect
+        if (sendBaselineConversationId != null && sendBaselineConversationId != conversationId) {
+            pendingSendPositioning = false
+            pendingEditedMessageId = null
+            sendBaselineIds = emptySet()
+            sendBaselineConversationId = null
+            return@LaunchedEffect
+        }
+        val baseline = sendBaselineIds
+        val sent = state.messages.lastOrNull { it.role == Role.USER && it.id !in baseline }
+        val edited = pendingEditedMessageId?.let { id ->
+            state.messages.firstOrNull { it.id == id && it.role == Role.USER }
+        }
+        val target = edited ?: sent
+        if (target == null) {
+            if (baseline.isNotEmpty()) return@LaunchedEffect
+            pendingSendPositioning = false
+            pendingEditedMessageId = null
+            sendBaselineConversationId = null
+            return@LaunchedEffect
+        }
+        pendingSendPositioning = false
+        pendingEditedMessageId = null
+        sendBaselineIds = emptySet()
+        sendBaselineConversationId = null
+        listState.scrollToItem(state.messages.indexOf(target))
     }
 
     LaunchedEffect(listState) {
@@ -448,6 +479,10 @@ fun ChatScreen(
                 },
                 onSend = {
                     val editing = editingMessageId
+                    sendBaselineIds = state.messages.map { it.id }.toSet()
+                    sendBaselineConversationId = state.conversationId
+                    pendingEditedMessageId = editing
+                    pendingSendPositioning = true
                     if (editing != null) {
                         viewModel.editAndResend(editing, state.draft)
                     } else {
@@ -570,7 +605,7 @@ fun ChatScreen(
                                 modifier = Modifier.fillMaxWidth(),
                             )
 
-                            val showScrollAffordance = !followLatest.value
+                            val showScrollAffordance = !atLatest.value
                             val fabAlpha by animateFloatAsState(
                                 targetValue = if (showScrollAffordance) 1f else 0f,
                                 animationSpec = appTween(AppMotion.FAST),
@@ -580,13 +615,7 @@ fun ChatScreen(
                                 val scrollLabel = stringResource(R.string.cd_scroll_to_latest)
                                 Surface(
                                     onClick = {
-                                        followLatest.value = true
-                                        listScope.launch {
-                                            listState.animateScrollToItem(
-                                                0,
-                                                listState.headPinOffset(pinnedHeadPx, contentBottomPaddingPx),
-                                            )
-                                        }
+                                        listScope.launch { jumpToLatest() }
                                     },
                                     shape = CircleShape,
                                     color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -676,24 +705,4 @@ fun ChatScreen(
     }
 }
 
-internal fun LazyListState.headPinOffset(pinnedTopPx: Int, bottomPaddingPx: Int): Int {
-    val info = layoutInfo
-    val newest = info.visibleItemsInfo.firstOrNull { it.index == 0 } ?: return 0
-    val contentHeight = info.viewportSize.height - bottomPaddingPx - pinnedTopPx
-    return (newest.size - contentHeight).coerceAtLeast(0)
-}
 
-internal fun LazyListState.isNearBottom(
-    thresholdPx: Float,
-    pinnedTopPx: Int = 0,
-    bottomPaddingPx: Int = 0,
-): Boolean {
-    if (firstVisibleItemIndex != 0) return false
-    if (firstVisibleItemScrollOffset <= thresholdPx) return true
-    val pin = headPinOffset(pinnedTopPx, bottomPaddingPx)
-    if (pin <= 0) return false
-    val drift = firstVisibleItemScrollOffset - pin
-    return drift >= -thresholdPx && drift <= thresholdPx
-}
-
-private val BOUNCE_TOLERANCE = 32.dp

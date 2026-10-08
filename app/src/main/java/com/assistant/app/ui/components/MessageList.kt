@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -47,9 +48,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
@@ -95,13 +98,18 @@ fun MessageList(
 
     topPadding: Dp = AppSpacing.lg,
 ) {
+    var listHeightPx by remember { mutableStateOf(0) }
+    val density = LocalDensity.current
+    val lastItemMinHeight = with(density) {
+        (listHeightPx - topPadding.roundToPx()).coerceAtLeast(0).toDp()
+    }
     LazyColumn(
         modifier = modifier
             .fillMaxWidth()
             .wrapContentWidth(Alignment.CenterHorizontally)
-            .widthIn(max = AppDimens.maxContentWidth),
+            .widthIn(max = AppDimens.maxContentWidth)
+            .onSizeChanged { listHeightPx = it.height },
         state = listState,
-        reverseLayout = true,
         contentPadding = PaddingValues(
             start = AppSpacing.lg,
             end = AppSpacing.lg,
@@ -111,13 +119,17 @@ fun MessageList(
         verticalArrangement = Arrangement.spacedBy(AppSpacing.xl),
     ) {
 
-        items(messages.asReversed(), key = { it.id }) { message ->
+        items(messages, key = { it.id }) { message ->
             val isLast = message.id == messages.last().id
             val isAssistant = message.role == Role.ASSISTANT
+            val streaming = status is ChatStatus.Generating && isLast && isAssistant
+            val searching = status is ChatStatus.Searching && isLast && isAssistant
+            // Leave room below the newest answer while it streams so the
+            // one-time send scroll can place the user message at the top.
             MessageItem(
                 message = message,
-                streaming = status is ChatStatus.Generating && isLast && isAssistant,
-                searching = status is ChatStatus.Searching && isLast && isAssistant,
+                streaming = streaming,
+                searching = searching,
                 actionsEnabled = status is ChatStatus.Idle,
                 canRegenerate = status is ChatStatus.Idle && isLast && isAssistant,
                 onRegenerate = onRegenerate,
@@ -125,6 +137,11 @@ fun MessageList(
                 onSwitchVersion = onSwitchVersion,
                 showReasoning = showReasoning,
                 onSpeakMessage = onSpeakMessage,
+                modifier = if (isLast && isAssistant && (streaming || searching) && lastItemMinHeight > 0.dp) {
+                    Modifier.heightIn(min = lastItemMinHeight)
+                } else {
+                    Modifier
+                },
             )
         }
     }
@@ -142,6 +159,7 @@ private fun MessageItem(
     onSwitchVersion: (String, Int) -> Unit,
     showReasoning: Boolean,
     onSpeakMessage: ((String) -> Unit)?,
+    modifier: Modifier = Modifier,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     var viewerFor by remember { mutableStateOf<UiAttachment?>(null) }
@@ -164,7 +182,7 @@ private fun MessageItem(
     }
 
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .then(enterModifier),
         contentAlignment = if (isUser) Alignment.CenterEnd else Alignment.CenterStart,
