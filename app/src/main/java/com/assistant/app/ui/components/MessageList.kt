@@ -42,6 +42,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -98,7 +99,7 @@ fun MessageList(
 
     topPadding: Dp = AppSpacing.lg,
 ) {
-    var listHeightPx by remember { mutableStateOf(0) }
+    var listHeightPx by remember { mutableIntStateOf(0) }
     val density = LocalDensity.current
     val lastItemMinHeight = with(density) {
         (listHeightPx - topPadding.roundToPx()).coerceAtLeast(0).toDp()
