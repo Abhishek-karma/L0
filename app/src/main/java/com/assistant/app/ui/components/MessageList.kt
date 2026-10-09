@@ -185,11 +185,11 @@ private fun MessageItem(
         modifier = modifier
             .fillMaxWidth()
             .then(enterModifier),
-        contentAlignment = if (isUser) Alignment.CenterEnd else Alignment.CenterStart,
+        contentAlignment = if (isUser) Alignment.CenterEnd else Alignment.TopStart,
     ) {
         Box(
             modifier = Modifier.defaultMinSize(minHeight = AppDimens.minTouchTarget),
-            contentAlignment = if (isUser) Alignment.CenterEnd else Alignment.CenterStart,
+            contentAlignment = if (isUser) Alignment.CenterEnd else Alignment.TopStart,
         ) {
             val longPress = Modifier.pointerInput(actionsEnabled) {
                 detectTapGestures(onLongPress = { if (actionsEnabled) menuOpen = true })
