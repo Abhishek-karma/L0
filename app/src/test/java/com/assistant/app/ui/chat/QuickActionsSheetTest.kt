@@ -11,12 +11,14 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextReplacement
 import com.assistant.app.R
 import com.assistant.app.data.SharedContent
 import com.assistant.app.llm.ScriptedEvent
 import com.assistant.app.ui.ScriptedChatFixture
 import com.assistant.app.ui.components.ComposerInputTag
 import com.assistant.app.ui.theme.ChatTheme
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -105,6 +107,54 @@ class QuickActionsSheetTest {
 
         composeRule.onNodeWithText(string(R.string.templates_save_action)).performClick()
 
+        // Save stays disabled until both the title and the body hold content, so an
+        // enabled button proves the draft reached the editor instead of an empty form.
         composeRule.onNodeWithText(string(R.string.history_rename_save)).assertIsEnabled()
+    }
+
+    @Test
+    fun unfinishedPlaceholderCannotBeSent() {
+        setContent()
+        composeRule.onNodeWithTag(ComposerInputTag).performTextInput("Explain {{topic}}")
+
+        composeRule.onNodeWithContentDescription(string(R.string.cd_send)).assertIsNotEnabled()
+        composeRule.onNodeWithText(
+            string(R.string.templates_fill_placeholder_hint, "{{topic}}"),
+        ).assertIsDisplayed()
+    }
+
+    @Test
+    fun fillingThePlaceholderReEnablesSend() {
+        setContent()
+        val composer = composeRule.onNodeWithTag(ComposerInputTag)
+        composer.performTextInput("Explain {{topic}}")
+        composeRule.onNodeWithContentDescription(string(R.string.cd_send)).assertIsNotEnabled()
+
+        composer.performTextReplacement("Explain recursion")
+
+        composeRule.onNodeWithContentDescription(string(R.string.cd_send)).assertIsEnabled()
+    }
+
+    @Test
+    fun everyPlaceholderIsNamedInsteadOfOnlyTheFirst() {
+        setContent()
+        composeRule.onNodeWithTag(ComposerInputTag).performTextInput("{{a}} vs {{b}}")
+
+        composeRule.onNodeWithText(
+            string(R.string.templates_fill_placeholder_hint, "{{a}}, {{b}}"),
+        ).assertIsDisplayed()
+    }
+
+    @Test
+    fun aShareIsConsumedExactlyOnce() {
+        var consumptions = 0
+        setContent(share = SharedContent(text = "staged once")) { consumptions++ }
+
+        composeRule.waitUntil(WAIT_MS) { consumptions == 1 }
+        composeRule.waitForIdle()
+
+        assertEquals(1, consumptions)
+        composeRule.onNodeWithText("staged once", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText("staged once\n\nstaged once").assertDoesNotExist()
     }
 }
