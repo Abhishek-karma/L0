@@ -18,7 +18,7 @@ object PromptTemplates {
     /** Longest a pasted template body may be, so the editor stays responsive. */
     const val MAX_BODY_CHARS = 4_000
 
-    private val PLACEHOLDER = Regex("""\{\{\s*([a-zA-Z0-9_]+)\s*}}""")
+    private val PLACEHOLDER = Regex("""\{\{\s*([a-zA-Z0-9_]+)\s*\}\}""")
 
     /**
      * Substitutes [text] for `{{text}}` and reports the placeholders left over,
