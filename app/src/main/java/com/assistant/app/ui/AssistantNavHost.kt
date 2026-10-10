@@ -29,6 +29,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.assistant.app.data.ChatLlmState
+import com.assistant.app.data.SharedContent
 import com.assistant.app.data.settings.AppPreferences
 import com.assistant.app.ui.chat.ChatScreen
 import com.assistant.app.ui.chat.ChatViewModel
@@ -58,6 +59,8 @@ fun AssistantNavHost(
     settingsViewModelFactory: ViewModelProvider.Factory,
     appPreferences: AppPreferences,
     modifier: Modifier = Modifier,
+    pendingShare: SharedContent? = null,
+    onShareConsumed: () -> Unit = {},
 ) {
     val navController = rememberNavController()
     val scope = rememberCoroutineScope()
@@ -154,6 +157,8 @@ fun AssistantNavHost(
                     onOpenProviderSetup = { navController.navigate(SETTINGS_ROUTE) },
                     viewModelFactory = chatViewModelFactory,
                     pendingConversationId = entry.arguments?.getString(CONVERSATION_ID_ARG),
+                    pendingShare = pendingShare,
+                    onShareConsumed = onShareConsumed,
                 )
             }
         }

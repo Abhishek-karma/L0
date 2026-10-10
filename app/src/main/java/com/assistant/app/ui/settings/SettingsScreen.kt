@@ -42,6 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -50,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.assistant.app.R
+import com.assistant.app.data.PromptTemplate
 import com.assistant.app.data.settings.AppTheme
 import com.assistant.app.data.settings.TextSize
 import com.assistant.app.ui.components.AppIcons
@@ -75,6 +77,7 @@ internal enum class SettingsPage(val titleRes: Int, val icon: Int, val group: Se
     Provider(R.string.settings_section_provider, AppIcons.Sparkle, SettingsGroup.Ai),
     Voice(R.string.settings_section_voice, AppIcons.Speak, SettingsGroup.Chat),
     Appearance(R.string.settings_section_appearance, AppIcons.Palette, SettingsGroup.Chat),
+    Prompts(R.string.settings_section_prompts, AppIcons.Template, SettingsGroup.Chat),
     Privacy(R.string.settings_section_privacy, AppIcons.Info, SettingsGroup.Data),
     Help(R.string.settings_section_help, AppIcons.Chat, SettingsGroup.Support),
     Terms(R.string.settings_section_terms, AppIcons.Flag, SettingsGroup.About),
@@ -91,6 +94,7 @@ fun SettingsScreen(
 ) {
     val viewModel: SettingsViewModel = viewModel(factory = viewModelFactory)
     val state by viewModel.uiState.collectAsState()
+    val templates by viewModel.promptTemplates.collectAsState()
     val context = LocalContext.current
     val versionName = remember {
         try {
@@ -163,11 +167,17 @@ fun SettingsScreen(
                         null -> SettingsMenu(
                             state = state,
                             versionName = versionName,
+                            templates = templates,
                             onOpen = { pageStack = pageStack + it },
                         )
                         SettingsPage.Provider -> ProviderPage(state = state, viewModel = viewModel)
                         SettingsPage.Voice -> VoicePage(state = state, viewModel = viewModel)
                         SettingsPage.Appearance -> AppearancePage(state = state, viewModel = viewModel)
+                        SettingsPage.Prompts -> PromptsPage(
+                            templates = templates,
+                            onSave = viewModel::saveTemplate,
+                            onDelete = viewModel::deleteTemplate,
+                        )
                         SettingsPage.About -> AboutPage(
                             versionName = versionName,
                             state = state,
@@ -191,6 +201,7 @@ fun SettingsScreen(
 private fun SettingsMenu(
     state: SettingsUiState,
     versionName: String,
+    templates: List<PromptTemplate>,
     onOpen: (SettingsPage) -> Unit,
 ) {
     SettingsGroup.entries.forEachIndexed { groupIndex, group ->
@@ -204,7 +215,7 @@ private fun SettingsMenu(
                 SettingsRow(
                     label = stringResource(page.titleRes),
                     icon = page.icon,
-                    value = settingsPageSummary(page, state, versionName),
+                    value = settingsPageSummary(page, state, versionName, templates),
                     onClick = { onOpen(page) },
                 )
             }
@@ -217,6 +228,7 @@ private fun settingsPageSummary(
     page: SettingsPage,
     state: SettingsUiState,
     versionName: String,
+    templates: List<PromptTemplate>,
 ): String? = when (page) {
     SettingsPage.Provider ->
         state.providers.firstOrNull { it.isActive }?.name
@@ -236,6 +248,9 @@ private fun settingsPageSummary(
             AppTheme.DARK -> R.string.settings_appearance_dark
         },
     )
+    SettingsPage.Prompts -> templates.size
+        .takeIf { it > 0 }
+        ?.let { pluralStringResource(R.plurals.settings_prompts_count, it, it) }
     SettingsPage.About -> versionName
     SettingsPage.Privacy,
     SettingsPage.Help,

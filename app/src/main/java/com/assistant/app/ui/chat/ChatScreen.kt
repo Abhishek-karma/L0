@@ -97,6 +97,7 @@ import com.assistant.app.R
 import com.assistant.app.data.AttachmentIngester
 import com.assistant.app.data.ChatLlmState
 import com.assistant.app.data.ChatStatus
+import com.assistant.app.data.SharedContent
 import com.assistant.app.data.VoiceStatus
 import com.assistant.app.llm.model.Role
 import com.assistant.app.ui.components.AssistantTopBar
@@ -106,6 +107,7 @@ import com.assistant.app.ui.components.Composer
 import com.assistant.app.ui.components.ComposerAttachAction
 import com.assistant.app.ui.components.MESSAGE_LIST_BOTTOM_PADDING
 import com.assistant.app.ui.components.MessageList
+import com.assistant.app.ui.components.PromptTemplateEditor
 import com.assistant.app.ui.theme.AppMotion
 import com.assistant.app.ui.theme.AppSpacing
 import com.assistant.app.ui.theme.AppShape
@@ -124,15 +126,21 @@ fun ChatScreen(
     pendingConversationId: String? = null,
     onOpenDrawer: (() -> Unit)? = null,
     onOpenProviderSetup: (() -> Unit)? = null,
+    pendingShare: SharedContent? = null,
+    onShareConsumed: () -> Unit = {},
 ) {
     val viewModel: ChatViewModel = viewModel(factory = viewModelFactory)
     val state by viewModel.uiState.collectAsState()
     val chatLlmState by viewModel.chatLlm.collectAsState()
     val reasoningVisible by viewModel.reasoningVisible.collectAsState()
     val voiceOut by viewModel.voiceOutputEnabled.collectAsState()
+    val templates by viewModel.templates.collectAsState()
     var editingMessageId by remember { mutableStateOf<String?>(null) }
     var draftBeforeEdit by remember { mutableStateOf("") }
     var showMicRationale by remember { mutableStateOf(false) }
+    var showQuickActions by remember { mutableStateOf(false) }
+    var saveTemplateRequest by remember { mutableStateOf<String?>(null) }
+    var unfilledPlaceholders by remember { mutableStateOf<List<String>>(emptyList()) }
 
     val context = LocalContext.current
     val keyboard = LocalSoftwareKeyboardController.current
@@ -247,6 +255,45 @@ fun ChatScreen(
         if (pendingConversationId != null) {
             viewModel.openConversation(pendingConversationId)
         }
+    }
+
+    // Staged for review, never sent: the user still presses send.
+    LaunchedEffect(pendingShare) {
+        val share = pendingShare ?: return@LaunchedEffect
+        viewModel.stageSharedContent(share)
+        onShareConsumed()
+    }
+
+    if (showQuickActions) {
+        QuickActionsSheet(
+            templates = templates,
+            onQuickAction = {
+                showQuickActions = false
+                viewModel.applyQuickAction(it)
+            },
+            onTemplate = {
+                showQuickActions = false
+                val filled = viewModel.applyTemplate(it)
+                unfilledPlaceholders = filled.missingValues
+            },
+            onSaveAsTemplate = {
+                showQuickActions = false
+                if (state.draft.isNotBlank()) saveTemplateRequest = state.draft
+            },
+            onDismiss = { showQuickActions = false },
+        )
+    }
+
+    saveTemplateRequest?.let { initialBody ->
+        val existing = templates.firstOrNull { it.body == initialBody }
+        PromptTemplateEditor(
+            existing = existing,
+            onSave = { title, body ->
+                viewModel.saveTemplate(existing?.id, title, body)
+                saveTemplateRequest = null
+            },
+            onDismiss = { saveTemplateRequest = null },
+        )
     }
 
     val error = state.status as? ChatStatus.Error
@@ -469,10 +516,19 @@ fun ChatScreen(
                 }
             }
             state.attachmentError?.let { errorText -> InlineHint(text = errorText) }
+            if (unfilledPlaceholders.isNotEmpty()) {
+                InlineHint(
+                    text = context.getString(
+                        R.string.templates_fill_placeholder_hint,
+                        unfilledPlaceholders.joinToString(", "),
+                    ),
+                )
+            }
             Composer(
                 value = state.draft,
                 onValueChange = {
                     viewModel.setDraft(it)
+                    if (unfilledPlaceholders.isNotEmpty()) unfilledPlaceholders = emptyList()
                     if (state.voiceHint) viewModel.dismissVoiceHint()
                     if (state.attachmentError != null) viewModel.dismissAttachmentError()
                     if (state.searchNotice != null) viewModel.dismissSearchNotice()
@@ -502,6 +558,7 @@ fun ChatScreen(
                 voiceActive = voiceActive,
                 voiceStatus = state.voiceStatus,
                 onAttachClick = { showAttachSheet = true },
+                onQuickActionsClick = { showQuickActions = true },
                 searchActive = state.searchEnabled,
                 onToggleSearch = viewModel::toggleSearch,
                 thinkCapability = state.thinkCapability,

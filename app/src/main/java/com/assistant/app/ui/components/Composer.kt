@@ -106,6 +106,7 @@ object AppIcons {
     val SpeakerOn = R.drawable.ic_speaker_on
     val Stop = R.drawable.ic_stop
     val TextSize = R.drawable.ic_text_size
+    val Template = R.drawable.ic_text_size
     val Trash = R.drawable.ic_trash
     val Wave = R.drawable.ic_wave
 }
@@ -137,12 +138,14 @@ fun Composer(
     thinkConfig: ReasoningConfig = ReasoningConfig.Auto,
     onThinkSelect: (ReasoningConfig) -> Unit = {},
     hasAttachments: Boolean = false,
+    onQuickActionsClick: (() -> Unit)? = null,
     topPadding: androidx.compose.ui.unit.Dp = AppSpacing.sm,
 ) {
     val haptics = rememberHaptics()
     val isNotBlank = value.isNotBlank()
     val searchStateLabel = stringResource(if (searchActive) R.string.switch_state_on else R.string.switch_state_off)
     val searchToggleLabel = stringResource(R.string.cd_toggle_search)
+    val quickActionsLabel = stringResource(R.string.cd_quick_actions)
     val borderCol by animateColorAsState(
         targetValue = if (isNotBlank || isGenerating) {
             MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
@@ -221,6 +224,23 @@ fun Composer(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                 ) {
+                    if (onQuickActionsClick != null) {
+                        IconButton(
+                            onClick = {
+                                haptics(HapticFeedbackType.TextHandleMove)
+                                onQuickActionsClick()
+                            },
+                            modifier = Modifier.size(48.dp),
+                        ) {
+                            Icon(
+                                painter = painterResource(AppIcons.Sparkle),
+                                contentDescription = quickActionsLabel,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(22.dp),
+                            )
+                        }
+                    }
+
                     if (onAttachClick != null) {
                         IconButton(
                             onClick = {

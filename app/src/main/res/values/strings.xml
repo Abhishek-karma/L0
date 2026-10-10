@@ -215,6 +215,32 @@
     <string name="search_results">Results</string>
     <string name="search_empty">No conversations match.</string>
 
+    <string name="cd_quick_actions">Quick actions</string>
+    <string name="quick_actions_title">Quick actions</string>
+
+    <string name="settings_section_prompts">Saved prompts</string>
+    <plurals name="settings_prompts_count">
+        <item quantity="one">%1$d saved</item>
+        <item quantity="other">%1$d saved</item>
+    </plurals>
+    <string name="templates_title">Saved prompts</string>
+    <string name="templates_new_title">New prompt</string>
+    <string name="templates_edit_title">Edit prompt</string>
+    <string name="templates_title_field">Title</string>
+    <string name="templates_body_field">Prompt</string>
+    <string name="templates_placeholder_hint">Use {{text}} to insert the current message</string>
+    <string name="templates_fill_placeholder_hint">Fill in before sending: %1$s</string>
+    <plurals name="templates_too_long">
+        <item quantity="one">Keep the prompt under %1$d character</item>
+        <item quantity="other">Keep the prompt under %1$d characters</item>
+    </plurals>
+    <string name="templates_new_action">Add prompt</string>
+    <string name="templates_edit_action">Edit</string>
+    <string name="templates_save_action">Save this message as a prompt</string>
+    <string name="templates_empty">No saved prompts yet. Add one to reuse it in any conversation.</string>
+    <string name="templates_delete_title">Delete prompt?</string>
+    <string name="templates_delete_message">“%1$s” will be removed. Messages you already sent are not affected.</string>
+
     <string name="drawer_new_chat">New chat</string>
     <string name="drawer_history">History</string>
     <string name="drawer_search">Search chats</string>

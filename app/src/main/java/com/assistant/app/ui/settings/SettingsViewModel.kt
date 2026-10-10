@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.assistant.app.data.ModelDraft
+import com.assistant.app.data.PromptTemplate
+import com.assistant.app.data.PromptTemplateStore
 import com.assistant.app.data.ProviderDraft
 import com.assistant.app.data.ProviderStore
 import com.assistant.app.data.local.ProviderModelEntity
@@ -28,10 +30,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -106,10 +111,14 @@ class SettingsViewModel(
     private val connectionTestDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val updateManager: UpdateManager? = null,
+    private val templateStore: PromptTemplateStore? = null,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState(ttsAvailable = ttsAvailable))
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
+
+    val promptTemplates: StateFlow<List<PromptTemplate>> = (templateStore?.templates() ?: flowOf(emptyList()))
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     private var validationJob: Job? = null
 
@@ -546,6 +555,16 @@ class SettingsViewModel(
         }
     }
 
+    fun saveTemplate(id: String?, title: String, body: String) {
+        val store = templateStore ?: return
+        viewModelScope.launch { store.save(id, title, body) }
+    }
+
+    fun deleteTemplate(id: String) {
+        val store = templateStore ?: return
+        viewModelScope.launch { store.delete(id) }
+    }
+
     private fun updateEditor(transform: (SettingsUiState) -> SettingsUiState) {
         _uiState.update(transform)
         onFormChanged()
@@ -599,6 +618,7 @@ class SettingsViewModel(
         private val ttsAvailable: Boolean = true,
         private val voiceOutput: VoiceOutput? = null,
         private val updateManager: UpdateManager? = null,
+        private val templateStore: PromptTemplateStore? = null,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -614,6 +634,7 @@ class SettingsViewModel(
                 ttsAvailable,
                 voiceOutput,
                 updateManager = updateManager,
+                templateStore = templateStore,
             ) as T
         }
     }

@@ -42,6 +42,8 @@ It is NOT an AI agent platform.
 18. Never store API keys in source code.
 19. Do not send user data anywhere unless required for the configured request.
 20. Do not mark work complete until it has been tested.
+21. Do not break existing functionality when adding, changing, or removing code.
+22. Do not keep code, features, or files that are not used.
 
 ---
 
@@ -187,6 +189,47 @@ Do not create:
 Reuse existing components when they genuinely fit.
 
 Create a new component when it improves clarity or reuse.
+
+Write clean code:
+
+- clear names over clever names
+- small functions with one job
+- direct data flow
+- no hidden side effects
+- no unused parameters, imports, or branches
+- no commented-out code
+- no feature kept "just in case"
+
+Remove unused code, unused features, and dead code as part of the change that touches them.
+
+---
+
+## Code Review
+
+Every change is reviewed before it is considered complete.
+
+Review as four roles:
+
+1. **CodeRabbit** — automated review.
+   Look for bugs, edge cases, nullability, error handling, resource leaks, threading issues, and regressions. Flag anything risky or unclear.
+
+2. **Caveman** — keep it brutally simple.
+   If a simpler version exists, use it. If a layer, abstraction, or helper is not needed, delete it. If you cannot explain the code in one sentence, rewrite it.
+
+3. **Ponytail** — do not break what already works.
+   Check that existing features, screens, and flows still behave the same. Verify text chat, streaming, cancellation, history, providers, voice, attachments, and Markdown rendering are unaffected.
+
+4. **Clean Code** — remove what is not used.
+   Delete dead code, unused files, unused functions, unused imports, unused resources, unused strings, unused dependencies, and unused screens. Do not leave placeholders, fake data, or TODOs behind.
+
+Rules for the review:
+
+- Do not approve a change that breaks existing functionality.
+- Do not approve a change that adds unused code or features.
+- Do not approve a change that leaves dead code behind.
+- Do not approve a change that hides a failure.
+- Fix issues found during review before finishing.
+- If a review comment is wrong, say why and move on.
 
 ---
 

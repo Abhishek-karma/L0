@@ -29,6 +29,9 @@ L0 communicates directly from the Android device to the configured AI provider e
   - Text-like document attachments (Markdown, JSON, code files up to 100 KB) inlined as context.
 - **Voice integration**: Speech recognition input and text-to-speech (TTS) voice playback with per-message controls and playback speed adjustment. Auto-play is suppressed while another screen is in front, and the first utterance after a cold start is queued until the engine finishes binding rather than dropped.
 - **Conversation management**: Search across messages, pin conversations, rename, delete, and export transcripts to plain text. History distinguishes "still loading" from "no conversations" so the empty state never flashes on open.
+- **Share into L0**: L0 is an Android share target for selected text, plain text, links (`ACTION_SEND` and `ACTION_SEND_MULTIPLE`). Shared text lands in the composer and shared files go through the same attachment pipeline as the picker, so they can be reviewed, extended with a question, and only then sent. Unsupported types say so instead of failing silently.
+- **Quick actions**: A compact sheet in the composer offers Summarize, Explain simply, Improve writing, Translate, Compare, and Extract key points. Each writes an ordinary prompt into the composer using whatever is already there, and sends through the normal flow on the active provider and model.
+- **Saved prompts**: Reusable prompt templates with a title and body, created from the composer or in Settings → Saved prompts. `{{text}}` inserts the current composer content; anything left unfilled is named before sending. Templates are stored on the device and never mix into sent messages.
 - **Appearance**: Follows Material Design 3 guidelines with light, dark, and system themes, custom font scaling, and dynamic splash icon.
 
 ## Security & Network Model

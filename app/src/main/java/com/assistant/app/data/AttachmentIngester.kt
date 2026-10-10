@@ -32,6 +32,15 @@ class AttachmentIngester(
         data class Failure(val message: String) : IngestResult
     }
 
+    /**
+     * Routes an arbitrary shared URI to the existing image or text pipeline.
+     * Unsupported types fail with [UNSUPPORTED_MESSAGE] instead of being ignored.
+     */
+    suspend fun ingest(uri: Uri): IngestResult = withContext(ioDispatcher) {
+        val mime = runCatching { resolver.getType(uri) }.getOrNull()
+        if (mime != null && mime.startsWith("image/")) ingestImage(uri) else ingestText(uri)
+    }
+
     suspend fun ingestImage(uri: Uri): IngestResult = withContext(ioDispatcher) {
         try {
             val name = queryDisplayName(uri) ?: DEFAULT_IMAGE_NAME

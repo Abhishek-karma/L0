@@ -285,6 +285,30 @@ interface AttachmentDao {
     suspend fun allPaths(): List<String>
 }
 
+@Entity(tableName = "prompt_templates")
+data class PromptTemplateEntity(
+    @PrimaryKey val id: String,
+    val title: String,
+    val body: String,
+    val updatedAt: Long,
+)
+
+@Dao
+interface PromptTemplateDao {
+
+    @Query("SELECT * FROM prompt_templates ORDER BY updatedAt DESC")
+    fun observeAll(): Flow<List<PromptTemplateEntity>>
+
+    @Query("SELECT * FROM prompt_templates WHERE id = :id")
+    suspend fun byId(id: String): PromptTemplateEntity?
+
+    @Upsert
+    suspend fun upsert(template: PromptTemplateEntity)
+
+    @Query("DELETE FROM prompt_templates WHERE id = :id")
+    suspend fun delete(id: String)
+}
+
 @Database(
     entities = [
         ConversationEntity::class,
@@ -293,8 +317,9 @@ interface AttachmentDao {
         ProviderEntity::class,
         ProviderModelEntity::class,
         AttachmentEntity::class,
+        PromptTemplateEntity::class,
     ],
-    version = 10,
+    version = 11,
     exportSchema = false,
 )
 abstract class ChatDatabase : RoomDatabase() {
@@ -303,6 +328,7 @@ abstract class ChatDatabase : RoomDatabase() {
     abstract fun providerDao(): ProviderDao
     abstract fun providerModelDao(): ProviderModelDao
     abstract fun attachmentDao(): AttachmentDao
+    abstract fun promptTemplateDao(): PromptTemplateDao
 
     companion object {
 
@@ -431,6 +457,16 @@ abstract class ChatDatabase : RoomDatabase() {
                 db.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_provider_models_providerId` " +
                         "ON `provider_models` (`providerId`)",
+                )
+            }
+        }
+
+        val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `prompt_templates` (" +
+                        "`id` TEXT NOT NULL, `title` TEXT NOT NULL, `body` TEXT NOT NULL, " +
+                        "`updatedAt` INTEGER NOT NULL, PRIMARY KEY(`id`))",
                 )
             }
         }

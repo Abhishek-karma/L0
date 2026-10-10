@@ -9,6 +9,11 @@ import com.assistant.app.data.ChatLlmState
 import com.assistant.app.data.ChatRepository
 import com.assistant.app.data.ChatStatus
 import com.assistant.app.data.ChatUiState
+import com.assistant.app.data.FilledTemplate
+import com.assistant.app.data.PromptTemplate
+import com.assistant.app.data.PromptTemplateStore
+import com.assistant.app.data.PromptTemplates
+import com.assistant.app.data.SharedContent
 import com.assistant.app.data.local.ConversationEntity
 import com.assistant.app.data.local.ProviderModelEntity
 import com.assistant.app.llm.model.ReasoningConfig
@@ -21,6 +26,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -41,6 +47,8 @@ class ChatViewModel(
     voiceId: () -> String? = { null },
     val voiceOutputEnabled: StateFlow<Boolean> = MutableStateFlow(false),
     private val setVoiceOutput: suspend (Boolean) -> Unit = {},
+    private val promptTemplates: Flow<List<PromptTemplate>> = flowOf(emptyList()),
+    private val templateStore: PromptTemplateStore? = null,
 ) : ViewModel() {
 
     private val voiceHandler = VoiceHandler(
@@ -76,6 +84,13 @@ class ChatViewModel(
         )
 
     val savedModels: StateFlow<List<ProviderModelEntity>> = savedModels
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = emptyList(),
+        )
+
+    val templates: StateFlow<List<PromptTemplate>> = promptTemplates
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.Eagerly,
@@ -222,6 +237,52 @@ class ChatViewModel(
         repository.setDraft(text)
     }
 
+    /**
+     * Stages content from another app for review. Nothing is sent here: shared
+     * text lands in the composer and shared files become pending attachments, so
+     * the user always chooses when the model sees it.
+     */
+    fun stageSharedContent(content: SharedContent) {
+        val uris = content.uris
+        if (uris.isEmpty()) {
+            content.text?.let { repository.appendDraft(it) }
+            return
+        }
+        val ingester = attachmentIngester
+        if (ingester == null) {
+            repository.setAttachmentError(AttachmentIngester.UNSUPPORTED_MESSAGE)
+            return
+        }
+        viewModelScope.launch {
+            repository.setIngestingAttachments(true)
+            val results = uris.map { ingester.ingest(it) }
+            content.text?.let { repository.appendDraft(it) }
+            applyIngestResults(results)
+        }
+    }
+
+    /** Writes an ordinary prompt for [action] into the composer without sending it. */
+    fun applyQuickAction(action: QuickAction) {
+        repository.setDraft(action.compose(uiState.value.draft))
+    }
+
+    /** Expands a saved template into the composer, filling `{{text}}` when possible. */
+    fun applyTemplate(template: PromptTemplate): FilledTemplate {
+        val filled = PromptTemplates.fill(template.body, uiState.value.draft)
+        repository.setDraft(filled.text)
+        return filled
+    }
+
+    fun saveTemplate(id: String?, title: String, body: String) {
+        val store = templateStore ?: return
+        viewModelScope.launch { store.save(id, title, body) }
+    }
+
+    fun deleteTemplate(id: String) {
+        val store = templateStore ?: return
+        viewModelScope.launch { store.delete(id) }
+    }
+
     fun openConversation(id: String) {
         voiceHandler.stopListening()
         voiceHandler.stopSpeaking()
@@ -272,6 +333,8 @@ class ChatViewModel(
         private val voiceId: () -> String? = { null },
         private val voiceOutputEnabled: StateFlow<Boolean> = MutableStateFlow(false),
         private val setVoiceOutput: suspend (Boolean) -> Unit = {},
+        private val promptTemplates: Flow<List<PromptTemplate>> = flowOf(emptyList()),
+        private val templateStore: PromptTemplateStore? = null,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -293,6 +356,8 @@ class ChatViewModel(
                 voiceId,
                 voiceOutputEnabled,
                 setVoiceOutput,
+                promptTemplates,
+                templateStore,
             ) as T
         }
     }

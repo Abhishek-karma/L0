@@ -9,6 +9,7 @@ import com.assistant.app.data.ChatRepository
 import com.assistant.app.data.ConversationStore
 import com.assistant.app.data.FollowUpSuggestions
 import com.assistant.app.data.LlmProviderCoordinator
+import com.assistant.app.data.PromptTemplateStore
 import com.assistant.app.data.ProviderStore
 import com.assistant.app.data.local.ChatDatabase
 import com.assistant.app.data.local.ProviderModelEntity
@@ -81,12 +82,17 @@ class AppContainer(context: Context) {
                 ChatDatabase.MIGRATION_7_8,
                 ChatDatabase.MIGRATION_8_9,
                 ChatDatabase.MIGRATION_9_10,
+                ChatDatabase.MIGRATION_10_11,
             )
             .build()
     }
 
     private val conversationStore: ConversationStore by lazy {
         ConversationStore(chatDatabase)
+    }
+
+    val promptTemplateStore: PromptTemplateStore by lazy {
+        PromptTemplateStore(chatDatabase)
     }
 
     val providerStore: ProviderStore by lazy {
@@ -169,6 +175,8 @@ class AppContainer(context: Context) {
             voiceId = { voiceIdState.value },
             voiceOutputEnabled = voiceOutputState,
             setVoiceOutput = { enabled -> appPreferences.setVoiceOutputEnabled(enabled) },
+            promptTemplates = promptTemplateStore.templates(),
+            templateStore = promptTemplateStore,
         )
     }
 
@@ -219,5 +227,6 @@ class AppContainer(context: Context) {
             ttsAvailable = voiceOutput.isAvailable,
             voiceOutput = voiceOutput,
             updateManager = updateManager,
+            templateStore = promptTemplateStore,
         )
 }

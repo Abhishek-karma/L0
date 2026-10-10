@@ -10,6 +10,7 @@ import com.assistant.app.data.local.ChatDatabase
 import com.assistant.app.data.local.MessageVersionEntity
 import com.assistant.app.data.local.ProviderEntity
 import com.assistant.app.data.local.ProviderModelEntity
+import com.assistant.app.data.local.PromptTemplateEntity
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -46,7 +47,7 @@ class ChatDatabaseMigrationTest {
     }
 
     @Test
-    fun upgradeFromV1ToV10_preservesExistingDataAndEnablesAllNewFields() = runTest {
+    fun upgradeFromV1ToV11_preservesExistingDataAndEnablesAllNewFields() = runTest {
 
         val factory = FrameworkSQLiteOpenHelperFactory()
         val config = androidx.sqlite.db.SupportSQLiteOpenHelper.Configuration.builder(context)
@@ -92,6 +93,7 @@ class ChatDatabaseMigrationTest {
                 ChatDatabase.MIGRATION_7_8,
                 ChatDatabase.MIGRATION_8_9,
                 ChatDatabase.MIGRATION_9_10,
+                ChatDatabase.MIGRATION_10_11,
             )
             .build()
         database = roomDb
@@ -167,10 +169,17 @@ class ChatDatabaseMigrationTest {
         val savedAttachments = roomDb.attachmentDao().observeForConversation("c1").first()
         assertEquals(1, savedAttachments.size)
         assertEquals("photo.jpg", savedAttachments.first().displayName)
+
+        roomDb.promptTemplateDao().upsert(
+            PromptTemplateEntity(id = "pt1", title = "Weekly summary", body = "Summarize {{text}}", updatedAt = 1003),
+        )
+        val templates = roomDb.promptTemplateDao().observeAll().first()
+        assertEquals(1, templates.size)
+        assertEquals("Weekly summary", templates.first().title)
     }
 
     @Test
-    fun upgradeFromV6ToV10_preservesExistingDataAndMovesProviderModelIntoASavedModel() = runTest {
+    fun upgradeFromV6ToV11_preservesExistingDataAndMovesProviderModelIntoASavedModel() = runTest {
 
         val factory = FrameworkSQLiteOpenHelperFactory()
         val config = androidx.sqlite.db.SupportSQLiteOpenHelper.Configuration.builder(context)
@@ -245,6 +254,7 @@ class ChatDatabaseMigrationTest {
                 ChatDatabase.MIGRATION_7_8,
                 ChatDatabase.MIGRATION_8_9,
                 ChatDatabase.MIGRATION_9_10,
+                ChatDatabase.MIGRATION_10_11,
             )
             .build()
         database = roomDb

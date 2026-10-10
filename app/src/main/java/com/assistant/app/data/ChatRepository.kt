@@ -94,6 +94,19 @@ class ChatRepository(
         _uiState.update { it.copy(draft = text) }
     }
 
+    /**
+     * Adds shared or templated text to the draft instead of replacing it, so an
+     * instruction the user already typed survives alongside the incoming content.
+     */
+    fun appendDraft(text: String) {
+        val addition = text.trim()
+        if (addition.isEmpty()) return
+        _uiState.update { state ->
+            val existing = state.draft.trimEnd()
+            state.copy(draft = if (existing.isEmpty()) addition else "$existing\n\n$addition")
+        }
+    }
+
     suspend fun onThinkModelChanged(providerId: Long, modelId: Long, capability: ThinkCapability) {
         val restored = loadThinkSelection(providerId, modelId)
             ?.let { capability.normalize(it) }

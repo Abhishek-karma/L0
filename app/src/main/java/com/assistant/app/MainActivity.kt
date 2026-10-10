@@ -2,6 +2,7 @@ package com.assistant.app
 
 import android.Manifest
 import android.app.Activity
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -17,21 +18,31 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.Density
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
+import com.assistant.app.data.SharedContent
+import com.assistant.app.data.SharedIntent
 import com.assistant.app.data.settings.AppTheme
 import com.assistant.app.ui.AssistantNavHost
 import com.assistant.app.ui.theme.ChatTheme
 
 class MainActivity : ComponentActivity() {
+
+    private var pendingShare by mutableStateOf<SharedContent?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
 
         setTheme(R.style.Theme_L0)
         super.onCreate(savedInstanceState)
+
+        // A recreation replays the same intent, so only the first delivery may stage it.
+        if (savedInstanceState == null) pendingShare = SharedIntent.read(intent)
 
         enableEdgeToEdge()
         val container = (application as AssistantApp).container
@@ -74,10 +85,18 @@ class MainActivity : ComponentActivity() {
                         chatViewModelFactory = chatFactory,
                         settingsViewModelFactory = settingsFactory,
                         appPreferences = container.appPreferences,
+                        pendingShare = pendingShare,
+                        onShareConsumed = { pendingShare = null },
                     )
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        pendingShare = SharedIntent.read(intent)
     }
 }
 
