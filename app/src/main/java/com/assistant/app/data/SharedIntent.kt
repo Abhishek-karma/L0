@@ -9,10 +9,14 @@ import android.os.Build
  *
  * Shared text is never logged: it can be a private message, a document excerpt,
  * or a link the user considers sensitive.
+ *
+ * [deliveryId] identifies one arrival from the share sheet. Two shares of the
+ * same content are still two deliveries, and must not collapse into one.
  */
 data class SharedContent(
     val text: String? = null,
     val uris: List<Uri> = emptyList(),
+    val deliveryId: Long = 0L,
 )
 
 object SharedIntent {

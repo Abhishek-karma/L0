@@ -97,6 +97,7 @@ import com.assistant.app.R
 import com.assistant.app.data.AttachmentIngester
 import com.assistant.app.data.ChatLlmState
 import com.assistant.app.data.ChatStatus
+import com.assistant.app.data.PromptTemplates
 import com.assistant.app.data.SharedContent
 import com.assistant.app.data.VoiceStatus
 import com.assistant.app.llm.model.Role
@@ -140,7 +141,7 @@ fun ChatScreen(
     var showMicRationale by remember { mutableStateOf(false) }
     var showQuickActions by remember { mutableStateOf(false) }
     var saveTemplateRequest by remember { mutableStateOf<String?>(null) }
-    var unfilledPlaceholders by remember { mutableStateOf<List<String>>(emptyList()) }
+    val unfilledPlaceholders = remember(state.draft) { PromptTemplates.missingValues(state.draft) }
 
     val context = LocalContext.current
     val keyboard = LocalSoftwareKeyboardController.current
@@ -273,8 +274,7 @@ fun ChatScreen(
             },
             onTemplate = {
                 showQuickActions = false
-                val filled = viewModel.applyTemplate(it)
-                unfilledPlaceholders = filled.missingValues
+                viewModel.applyTemplate(it)
             },
             onSaveAsTemplate = {
                 showQuickActions = false
@@ -528,7 +528,6 @@ fun ChatScreen(
                 value = state.draft,
                 onValueChange = {
                     viewModel.setDraft(it)
-                    if (unfilledPlaceholders.isNotEmpty()) unfilledPlaceholders = emptyList()
                     if (state.voiceHint) viewModel.dismissVoiceHint()
                     if (state.attachmentError != null) viewModel.dismissAttachmentError()
                     if (state.searchNotice != null) viewModel.dismissSearchNotice()
@@ -547,6 +546,8 @@ fun ChatScreen(
                     editingMessageId = null
                     keyboard?.hide()
                 },
+                // Sending `{{topic}}` verbatim is never what the user meant.
+                canSend = unfilledPlaceholders.isEmpty(),
                 onStop = viewModel::stop,
                 isGenerating = isBusy,
                 onMicClick = when (state.voiceStatus) {

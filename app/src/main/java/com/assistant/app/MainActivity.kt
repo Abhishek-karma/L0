@@ -35,14 +35,18 @@ import com.assistant.app.ui.theme.ChatTheme
 class MainActivity : ComponentActivity() {
 
     private var pendingShare by mutableStateOf<SharedContent?>(null)
+    private var shareCount = 0L
 
     override fun onCreate(savedInstanceState: Bundle?) {
 
         setTheme(R.style.Theme_L0)
         super.onCreate(savedInstanceState)
 
-        // A recreation replays the same intent, so only the first delivery may stage it.
-        if (savedInstanceState == null) pendingShare = SharedIntent.read(intent)
+        shareCount = savedInstanceState?.getLong(KEY_SHARE_COUNT) ?: 0L
+
+        if (savedInstanceState?.getBoolean(KEY_SHARE_CONSUMED) != true) {
+            pendingShare = nextDelivery(SharedIntent.read(intent))
+        }
 
         enableEdgeToEdge()
         val container = (application as AssistantApp).container
@@ -96,7 +100,23 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        pendingShare = SharedIntent.read(intent)
+        pendingShare = nextDelivery(SharedIntent.read(intent))
+    }
+
+    private fun nextDelivery(content: SharedContent?): SharedContent? {
+        if (content == null) return null
+        return content.copy(deliveryId = ++shareCount)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean(KEY_SHARE_CONSUMED, pendingShare == null)
+        outState.putLong(KEY_SHARE_COUNT, shareCount)
+    }
+
+    private companion object {
+        const val KEY_SHARE_CONSUMED = "share_consumed"
+        const val KEY_SHARE_COUNT = "share_count"
     }
 }
 

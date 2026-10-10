@@ -39,6 +39,11 @@ object PromptTemplates {
         return FilledTemplate(filled, missing.distinct())
     }
 
+    fun missingValues(body: String): List<String> = PLACEHOLDER.findAll(body)
+        .map { it.value }
+        .distinct()
+        .toList()
+
     fun titleFromBody(body: String): String {
         val firstLine = body.lineSequence().firstOrNull { it.isNotBlank() }?.trim().orEmpty()
         return if (firstLine.length <= DEFAULT_TITLE_LENGTH) {

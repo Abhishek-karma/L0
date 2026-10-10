@@ -139,6 +139,7 @@ fun Composer(
     onThinkSelect: (ReasoningConfig) -> Unit = {},
     hasAttachments: Boolean = false,
     onQuickActionsClick: (() -> Unit)? = null,
+    canSend: Boolean = true,
     topPadding: androidx.compose.ui.unit.Dp = AppSpacing.sm,
 ) {
     val haptics = rememberHaptics()
@@ -375,7 +376,7 @@ fun Composer(
 
                     SendButton(
                         isGenerating = isGenerating,
-                        enabled = isGenerating || isNotBlank || hasAttachments,
+                        enabled = isGenerating || ((isNotBlank || hasAttachments) && canSend),
                         onSend = onSend,
                         onStop = onStop,
                     )
