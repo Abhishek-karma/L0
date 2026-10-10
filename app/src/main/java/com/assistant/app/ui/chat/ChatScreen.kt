@@ -285,11 +285,11 @@ fun ChatScreen(
     }
 
     saveTemplateRequest?.let { initialBody ->
-        val existing = templates.firstOrNull { it.body == initialBody }
         PromptTemplateEditor(
-            existing = existing,
+            existing = null,
+            initialBody = initialBody,
             onSave = { title, body ->
-                viewModel.saveTemplate(existing?.id, title, body)
+                viewModel.saveTemplate(null, title, body)
                 saveTemplateRequest = null
             },
             onDismiss = { saveTemplateRequest = null },

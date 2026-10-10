@@ -27,7 +27,8 @@ import com.assistant.app.data.PromptTemplate
 import com.assistant.app.data.PromptTemplates
 
 /**
- * Creates or edits a reusable prompt. The body stays under
+ * Creates or edits a reusable prompt. A new prompt starts from [initialBody]
+ * with its title derived from it. The body stays under
  * [PromptTemplates.MAX_BODY_CHARS] and the title is required, so an unusable
  * template cannot be stored.
  */
@@ -36,9 +37,12 @@ fun PromptTemplateEditor(
     existing: PromptTemplate?,
     onSave: (title: String, body: String) -> Unit,
     onDismiss: () -> Unit,
+    initialBody: String = "",
 ) {
-    var title by remember(existing) { mutableStateOf(existing?.title.orEmpty()) }
-    var body by remember(existing) { mutableStateOf(existing?.body.orEmpty()) }
+    var title by remember(existing, initialBody) {
+        mutableStateOf(existing?.title ?: PromptTemplates.titleFromBody(initialBody))
+    }
+    var body by remember(existing, initialBody) { mutableStateOf(existing?.body ?: initialBody) }
     val canSave = PromptTemplates.isValid(title, body)
     val overLimit = body.length > PromptTemplates.MAX_BODY_CHARS
 

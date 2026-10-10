@@ -11,14 +11,9 @@ data class PromptTemplate(
     val title: String,
     val body: String,
     val updatedAt: Long = System.currentTimeMillis(),
-) {
-    /** Placeholders the user still has to fill in before this can be sent. */
-    val missingValues: List<String> get() = PromptTemplates.missingValues(body)
-}
+)
 
 object PromptTemplates {
-
-    const val TEXT_PLACEHOLDER = "{{text}}"
 
     /** Longest a pasted template body may be, so the editor stays responsive. */
     const val MAX_BODY_CHARS = 4_000
@@ -43,11 +38,6 @@ object PromptTemplates {
         }
         return FilledTemplate(filled, missing.distinct())
     }
-
-    fun missingValues(body: String): List<String> = PLACEHOLDER.findAll(body)
-        .map { it.value }
-        .distinct()
-        .toList()
 
     fun titleFromBody(body: String): String {
         val firstLine = body.lineSequence().firstOrNull { it.isNotBlank() }?.trim().orEmpty()

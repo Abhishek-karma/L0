@@ -13,9 +13,7 @@ import android.os.Build
 data class SharedContent(
     val text: String? = null,
     val uris: List<Uri> = emptyList(),
-) {
-    val isEmpty: Boolean get() = text.isNullOrBlank() && uris.isEmpty()
-}
+)
 
 object SharedIntent {
 
@@ -37,7 +35,7 @@ object SharedIntent {
             intent.webLink(),
         ).map { it.trim() }.firstOrNull { it.isNotEmpty() } ?: return null
         if (shared.length <= MAX_TEXT_CHARS) return shared
-        return shared.take(MAX_TEXT_CHARS).trimEnd() + "…"
+        return shared.take(MAX_TEXT_CHARS - 1).trimEnd() + "…"
     }
 
     /**

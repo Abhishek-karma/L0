@@ -2,6 +2,7 @@ package com.assistant.app.ui.chat
 
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
@@ -94,5 +95,16 @@ class QuickActionsSheetTest {
 
         composeRule.onNodeWithText("the article body", substring = true).assertIsDisplayed()
         composeRule.onNodeWithText("reply").assertDoesNotExist()
+    }
+
+    @Test
+    fun savingTheComposerAsAPromptPrefillsTheEditor() {
+        setContent()
+        composeRule.onNodeWithTag(ComposerInputTag).performTextInput("Draft a status update")
+        composeRule.onNodeWithContentDescription(string(R.string.cd_quick_actions)).performClick()
+
+        composeRule.onNodeWithText(string(R.string.templates_save_action)).performClick()
+
+        composeRule.onNodeWithText(string(R.string.history_rename_save)).assertIsEnabled()
     }
 }

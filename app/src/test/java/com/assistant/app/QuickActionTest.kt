@@ -108,14 +108,7 @@ class PromptTemplatesTest {
         assertTrue(filled.missingValues.isEmpty())
     }
 
-    @Test
-    fun `missing values on a template are derived from its body`() {
-        val template = PromptTemplate(title = "T", body = "Do {{thing}}")
-
-        assertEquals(listOf("{{thing}}"), template.missingValues)
-    }
-
-    @Test
+@Test
     fun `blank titles and bodies are rejected`() {
         assertFalse(PromptTemplates.isValid("", "body"))
         assertFalse(PromptTemplates.isValid("title", "   "))

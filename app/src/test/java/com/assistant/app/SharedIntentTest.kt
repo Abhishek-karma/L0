@@ -149,7 +149,7 @@ class SharedIntentTest {
 
         val text = SharedIntent.read(intent)?.text
 
-        assertEquals(SharedIntent.MAX_TEXT_CHARS + 1, text?.length)
+        assertEquals(SharedIntent.MAX_TEXT_CHARS, text?.length)
         assertTrue(text!!.endsWith("…"))
     }
 
