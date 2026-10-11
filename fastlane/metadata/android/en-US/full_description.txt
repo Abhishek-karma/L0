@@ -1,0 +1,38 @@
+L0 is a bring-your-own-key AI chat client for Android. It talks directly from your device to the AI provider you choose, using your own API key. There is no account, no backend, and no telemetry.
+
+Your key is stored on your device in encrypted storage backed by the Android KeyStore, and requests go straight from your phone to the provider endpoint you configured. Nothing is routed through a third-party server.
+
+Providers:
+
+- Google Gemini
+- OpenAI
+- OpenRouter
+- Groq
+- Naga
+- Any custom OpenAI-compatible endpoint
+- Local or self-hosted models, such as Ollama or LM Studio
+
+Features:
+
+- Fast token-level streaming with stop, retry, regenerate, and edit-and-resend
+- Answer versions: regenerating keeps previous answers so you can switch between them
+- Conversation history stored locally, with search, pin, rename, delete, and plain-text export
+- Voice input via speech recognition and voice output via text-to-speech, with playback speed control
+- Image attachments from the camera or gallery, automatically downscaled and compressed
+- Text document attachments such as Markdown, JSON, and source files, inlined as context
+- Share into L0 from other apps for selected text, links, images, and files
+- Quick actions such as Summarize, Explain simply, Improve writing, Translate, Compare, and Extract key points
+- Saved prompt templates with a {{text}} placeholder
+- Optional DuckDuckGo web search grounding with visible source citations
+- Reasoning display for thinking models
+- Follow-up suggestions after each answer, staged in the composer for review
+- Material Design 3 with light, dark, and system themes
+
+Privacy:
+
+- API keys stay on your device in encrypted storage
+- No analytics, no crash reporting, no advertising
+- Cloud backup and device-to-device transfer are disabled so conversations and keys are never copied off the device
+- Remote endpoints require HTTPS; cleartext HTTP is allowed only for loopback and private local network addresses
+
+L0 requires you to supply your own API key from a provider. It does not include any model or include free usage.

@@ -2,6 +2,23 @@
 
 All notable changes to L0 are documented here.
 
+## [0.0.4] - 2026-10-11
+
+### Added
+
+- **Saved prompts**: Reusable prompt templates with a title and body, created from the composer or in Settings → Saved prompts. `{{text}}` inserts the current composer content; anything left unfilled is named before sending. Templates are stored on the device and never mix into sent messages.
+- **Share into L0**: L0 is now an Android share target for selected text, plain text, links, and files (`ACTION_SEND` and `ACTION_SEND_MULTIPLE`). Shared text lands in the composer and shared files go through the same attachment pipeline as the picker, so they can be reviewed, extended with a question, and only then sent.
+- **Quick actions**: A compact sheet in the composer offers Summarize, Explain simply, Improve writing, Translate, Compare, and Extract key points. Each writes an ordinary prompt into the composer using whatever is already there, and sends through the normal flow on the active provider and model.
+
+### Changed
+
+- **Composer edits stack instead of replacing.** Shared text and prompt templates are appended to the draft, so an instruction you already typed survives alongside incoming content.
+
+### Fixed
+
+- **Failed turns no longer leave an empty answer behind.** If a turn is cancelled or errors before it produces anything, the assistant row it created is discarded rather than left blank in the conversation.
+- **Message positioning and scrolling.** Message alignment and the follow-the-latest behavior were reworked so long answers and pinned message positions behave consistently.
+
 ## [0.0.3] - 2026-10-06
 
 ### Fixed

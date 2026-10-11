@@ -1,3 +1,6 @@
 # Keep shell/batch launchers executable across platforms.
 gradlew text eol=lf
 *.bat text eol=crlf
+
+# F-Droid reads store metadata verbatim; a trailing CR breaks its length limits.
+fastlane/**/*.txt text eol=lf

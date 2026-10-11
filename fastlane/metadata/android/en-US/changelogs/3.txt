@@ -1,0 +1,1 @@
+Long streaming answers no longer break auto-follow, and finishing an answer no longer nudges the view up. Sending a new message only jumps to the newest message when you are actually following the latest content.

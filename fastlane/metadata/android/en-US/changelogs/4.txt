@@ -1,0 +1,1 @@
+Added saved prompt templates with a {{text}} placeholder, a share target for text, links, images, and files, and quick actions such as Summarize and Translate. Fixed failed turns leaving an empty answer behind, and reworked message positioning and scrolling.

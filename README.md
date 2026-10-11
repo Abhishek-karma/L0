@@ -2,8 +2,16 @@
 
 [![CI](https://github.com/Abhishek-karma/L0/actions/workflows/ci.yml/badge.svg)](https://github.com/Abhishek-karma/L0/actions/workflows/ci.yml)
 [![Release](https://github.com/Abhishek-karma/L0/actions/workflows/release.yml/badge.svg)](https://github.com/Abhishek-karma/L0/actions/workflows/release.yml)
+[![F-Droid](https://f-droid.org/expo_png.png)](https://f-droid.org/packages/com.aistudio.inletchat.wzptbq/)
 
 A minimal, private Android AI chat client focused on fast token-level streaming with OpenAI-compatible and Google Gemini providers.
+
+## Install
+
+- **F-Droid** — search for **L0** in the F-Droid client or [repo](https://f-droid.org/packages/com.aistudio.inletchat.wzptbq/)
+- **Direct APK** — download `L0-<version>.apk` from the [latest release](https://github.com/Abhishek-karma/L0/releases/latest). Verify it against the attached `.sha256` checksum. You will need to allow installs from your browser.
+
+Requires Android 8.0 (API 26) or newer. You bring your own API key; the app includes no model and no free usage.
 
 ## Overview
 
@@ -86,3 +94,49 @@ keyAlias=your-key-alias
 keyPassword=your-key-password
 ```
 If `keystore.properties` is absent, release builds remain unsigned.
+
+## F-Droid
+
+F-Droid builds L0 from source and signs it with F-Droid's own key, so no signing secrets are needed in this repository. Store metadata lives in `fastlane/metadata/android/en-US/`:
+
+```
+fastlane/metadata/android/en-US/
+├── title.txt
+├── short_description.txt          # under 80 characters, no trailing dot
+├── full_description.txt
+├── categories.txt
+├── changelogs/<versionCode>.txt   # max 500 characters
+└── images/
+    ├── icon.png                   # 512x512
+    └── phoneScreenshots/1.png
+```
+
+Every release tag needs a matching `changelogs/<versionCode>.txt`, where `versionCode` is `MAJOR * 10000 + MINOR * 100 + PATCH`. New versions reach F-Droid automatically once a tag is pushed; the build server picks them up from the version in `app/build.gradle.kts`.
+
+### Submitting a new app
+
+1. Push the tag and confirm the GitHub release build succeeds.
+2. Fork `fdroid/fdroiddata`, then create `metadata/com.aistudio.inletchat.wzptbq.yml`:
+   ```yaml
+   Categories:
+   - Internet
+   License: MIT
+   AuthorName: Abhishek-karma
+   AuthorEmail: abhikarma.work@gmail.com
+   SourceCode: https://github.com/Abhishek-karma/L0
+   IssueTracker: https://github.com/Abhishek-karma/L0/issues
+   Changelog: https://github.com/Abhishek-karma/L0/blob/main/CHANGELOG.md
+   WebSite: https://github.com/Abhishek-karma/L0
+   RepoType: git
+   Repo: https://github.com/Abhishek-karma/L0.git
+   Builds:
+     - versionName: 0.0.4
+       versionCode: 4
+       commit: '<full tag commit sha>'
+       subdir: app
+       gradle:
+         - assembleRelease
+   ```
+3. Open a merge request against `fdroid/fdroiddata`. The F-Droid CI runs the build against it, and a maintainer picks up the request from the [submission queue](https://gitlab.com/fdroid/rfp/issues).
+
+Update the `versionName`, `versionCode`, and `commit` on every new tag; F-Droid's `checkupdates` runner handles subsequent releases once the app is indexed.
