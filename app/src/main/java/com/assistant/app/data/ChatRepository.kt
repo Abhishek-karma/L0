@@ -26,6 +26,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
@@ -66,6 +67,10 @@ class ChatRepository(
 
     @Volatile
     private var failedAssistantId: String? = null
+
+    /** Assistant row the current turn created, so a turn that produced nothing can be dropped. */
+    @Volatile
+    private var turnAssistantId: String? = null
 
     @Volatile
     private var followUpJob: Job? = null
@@ -266,6 +271,7 @@ class ChatRepository(
             }
             throw e
         } finally {
+            discardUnusedAssistant()
             turnLock.unlock()
         }
     }
@@ -289,6 +295,7 @@ class ChatRepository(
                 attachments = attachments,
             )
             val assistantId = newId()
+            turnAssistantId = assistantId
 
             _uiState.update { state ->
                 state.copy(
@@ -354,6 +361,7 @@ class ChatRepository(
             if (_uiState.value.messages.none { it.role == Role.USER }) return
             appendAssistantPlaceholderAndGenerate(llm, currentCoroutineContext().job)
         } finally {
+            discardUnusedAssistant()
             turnLock.unlock()
         }
     }
@@ -427,6 +435,7 @@ class ChatRepository(
             throw e
         } finally {
             if (turnJob === job) turnJob = null
+            discardUnusedAssistant()
             turnLock.unlock()
         }
     }
@@ -479,6 +488,7 @@ class ChatRepository(
             }
             appendAssistantPlaceholderAndGenerate(llm, job)
         } finally {
+            discardUnusedAssistant()
             turnLock.unlock()
         }
     }
@@ -725,6 +735,7 @@ class ChatRepository(
 
     private suspend fun appendAssistantPlaceholderAndGenerate(llm: ChatLlmState.Ready, job: Job) {
         val assistantId = newId()
+        turnAssistantId = assistantId
         _uiState.update { state ->
             state.copy(messages = state.messages + UiMessage(assistantId, Role.ASSISTANT, "", now()))
         }
@@ -777,6 +788,19 @@ class ChatRepository(
                 attachmentManager.deleteFiles(s.deleteMessagesFrom(failedId, conversationId))
             }
         }
+    }
+
+    private suspend fun discardUnusedAssistant() = withContext(NonCancellable) {
+        val assistantId = turnAssistantId ?: return@withContext
+        turnAssistantId = null
+        val unused = _uiState.value.messages
+            .firstOrNull { it.id == assistantId }
+            ?.let { it.content.isBlank() && it.reasoning.isBlank() && it.sources.isEmpty() }
+            ?: return@withContext
+        if (!unused) return@withContext
+        _uiState.update { state -> state.copy(messages = state.messages.filterNot { it.id == assistantId }) }
+        val conversationId = _uiState.value.conversationId ?: return@withContext
+        store?.let { s -> attachmentManager.deleteFiles(s.deleteMessagesFrom(assistantId, conversationId)) }
     }
 
     private suspend fun failGeneration(

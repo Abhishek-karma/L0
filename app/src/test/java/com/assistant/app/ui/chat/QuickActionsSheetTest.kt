@@ -12,6 +12,9 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import com.assistant.app.R
 import com.assistant.app.data.SharedContent
 import com.assistant.app.llm.ScriptedEvent
@@ -35,6 +38,9 @@ class QuickActionsSheetTest {
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
     private fun string(resId: Int): String = composeRule.activity.getString(resId)
+
+    private fun string(resId: Int, vararg formatArgs: Any): String =
+        composeRule.activity.getString(resId, *formatArgs)
 
     private fun setContent(share: SharedContent? = null, onShareConsumed: () -> Unit = {}) {
         val fixture = ScriptedChatFixture(listOf(ScriptedEvent.Emit("reply")))
@@ -117,7 +123,8 @@ class QuickActionsSheetTest {
         setContent()
         composeRule.onNodeWithTag(ComposerInputTag).performTextInput("Explain {{topic}}")
 
-        composeRule.onNodeWithContentDescription(string(R.string.cd_send)).assertIsNotEnabled()
+        composeRule.onNodeWithContentDescription(string(R.string.cd_send))
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Disabled, Unit))
         composeRule.onNodeWithText(
             string(R.string.templates_fill_placeholder_hint, "{{topic}}"),
         ).assertIsDisplayed()
@@ -128,7 +135,8 @@ class QuickActionsSheetTest {
         setContent()
         val composer = composeRule.onNodeWithTag(ComposerInputTag)
         composer.performTextInput("Explain {{topic}}")
-        composeRule.onNodeWithContentDescription(string(R.string.cd_send)).assertIsNotEnabled()
+        composeRule.onNodeWithContentDescription(string(R.string.cd_send))
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Disabled, Unit))
 
         composer.performTextReplacement("Explain recursion")
 

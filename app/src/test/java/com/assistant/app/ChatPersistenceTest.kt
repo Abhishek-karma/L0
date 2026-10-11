@@ -11,10 +11,12 @@ import com.assistant.app.data.local.ChatDatabase
 import com.assistant.app.llm.FakeLlmProvider
 import com.assistant.app.llm.ScriptedEvent
 import com.assistant.app.llm.model.Role
+import com.assistant.app.llm.model.SearchOutcome
 import com.assistant.app.llm.model.UiMessage
 import com.assistant.app.ui.chat.ChatViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestResult
@@ -56,6 +58,7 @@ class ChatPersistenceTest {
     private fun runChatTest(
         script: List<ScriptedEvent>,
         attachmentsDir: File? = null,
+        webSearch: (suspend (String) -> SearchOutcome?)? = null,
         block: suspend TestScope.(ChatViewModel, FakeLlmProvider, ChatRepository, ConversationStore) -> Unit,
     ): TestResult = runTest {
         val db = Room
@@ -76,6 +79,7 @@ class ChatPersistenceTest {
             store = store,
             clock = { testScheduler.currentTime },
             attachmentsDir = attachmentsDir,
+            webSearch = webSearch,
         )
         block(ChatViewModel(repository, chatLlm), provider, repository, store)
     }
@@ -146,6 +150,75 @@ class ChatPersistenceTest {
         val persisted = store.messages(conversationId).first()
         assertEquals("Hel", persisted.last { it.role == "ASSISTANT" }.content)
         assertEquals(ChatStatus.Idle, viewModel.uiState.value.status)
+    }
+
+    @Test
+    fun stoppingDuringWebSearchKeepsOnlyTheQuestion() = runChatTest(
+        script = listOf(ScriptedEvent.Emit("Hel")),
+        webSearch = { _ ->
+            delay(10_000)
+            SearchOutcome.Success(emptyList())
+        },
+    ) { viewModel, provider, _, store ->
+        viewModel.toggleSearch()
+        advanceUntilIdle()
+
+        viewModel.send("Kotlin coroutines")
+        runCurrent()
+        assertEquals(ChatStatus.Searching, viewModel.uiState.value.status)
+
+        viewModel.stop()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertEquals(ChatStatus.Idle, state.status)
+        assertEquals(
+            listOf(Role.USER to "Kotlin coroutines"),
+            state.messages.map { it.role to it.content },
+        )
+        assertEquals(
+            listOf("USER"),
+            store.messages(state.conversationId!!).first().map { it.role },
+        )
+        assertTrue(provider.requests.isEmpty())
+
+        viewModel.send("And now")
+        advanceUntilIdle()
+        assertEquals(
+            listOf(Role.USER, Role.USER, Role.ASSISTANT),
+            viewModel.uiState.value.messages.map { it.role },
+        )
+    }
+
+    @Test
+    fun stoppingBeforeTheFirstTokenKeepsOnlyTheQuestion() = runChatTest(
+        script = listOf(ScriptedEvent.Delay(10_000), ScriptedEvent.Emit("Hel")),
+    ) { viewModel, provider, _, store ->
+        viewModel.send("Hi")
+        runCurrent()
+        assertEquals(ChatStatus.Generating, viewModel.uiState.value.status)
+
+        viewModel.stop()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertEquals(ChatStatus.Idle, state.status)
+        assertEquals(
+            listOf(Role.USER to "Hi"),
+            state.messages.map { it.role to it.content },
+        )
+        assertEquals(
+            listOf("USER"),
+            store.messages(state.conversationId!!).first().map { it.role },
+        )
+        assertTrue(provider.requests.isNotEmpty())
+
+        viewModel.send("Again")
+        advanceUntilIdle()
+        assertEquals(
+            listOf(Role.USER, Role.USER, Role.ASSISTANT),
+            viewModel.uiState.value.messages.map { it.role },
+        )
     }
 
     @Test
