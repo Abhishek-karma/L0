@@ -2,13 +2,13 @@
 
 [![CI](https://github.com/Abhishek-karma/L0/actions/workflows/ci.yml/badge.svg)](https://github.com/Abhishek-karma/L0/actions/workflows/ci.yml)
 [![Release](https://github.com/Abhishek-karma/L0/actions/workflows/release.yml/badge.svg)](https://github.com/Abhishek-karma/L0/actions/workflows/release.yml)
-[![F-Droid](https://f-droid.org/expo_png.png)](https://f-droid.org/packages/com.aistudio.inletchat.wzptbq/)
+[![F-Droid](https://f-droid.org/expo_png.png)](https://f-droid.org/packages/com.abhi.l0/)
 
 A minimal, private Android AI chat client focused on fast token-level streaming with OpenAI-compatible and Google Gemini providers.
 
 ## Install
 
-- **F-Droid** — search for **L0** in the F-Droid client or [repo](https://f-droid.org/packages/com.aistudio.inletchat.wzptbq/)
+- **F-Droid** — search for **L0** in the F-Droid client or [repo](https://f-droid.org/packages/com.abhi.l0/)
 - **Direct APK** — download `L0-<version>.apk` from the [latest release](https://github.com/Abhishek-karma/L0/releases/latest). Verify it against the attached `.sha256` checksum. You will need to allow installs from your browser.
 
 Requires Android 8.0 (API 26) or newer. You bring your own API key; the app includes no model and no free usage.
@@ -116,7 +116,7 @@ Every release tag needs a matching `changelogs/<versionCode>.txt`, where `versio
 ### Submitting a new app
 
 1. Push the tag and confirm the GitHub release build succeeds.
-2. Fork `fdroid/fdroiddata`, then create `metadata/com.aistudio.inletchat.wzptbq.yml`:
+2. Fork `fdroid/fdroiddata`, then create `metadata/com.abhi.l0.yml`:
    ```yaml
    Categories:
    - Internet

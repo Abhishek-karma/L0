@@ -21,7 +21,7 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.aistudio.inletchat.wzptbq"
+        applicationId = "com.abhi.l0"
         minSdk = 26
         targetSdk = 35
 
