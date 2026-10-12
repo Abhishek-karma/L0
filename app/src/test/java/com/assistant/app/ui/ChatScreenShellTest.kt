@@ -315,6 +315,8 @@ class ChatScreenShellTest {
         composeRule.waitUntil {
             composeRule.onAllNodesWithText("Hi").fetchSemanticsNodes().isNotEmpty()
         }
+        composeRule.waitForIdle()
+
         val bubbleBefore = composeRule.onNodeWithText("Hi").getUnclippedBoundsInRoot()
         composeRule.waitUntil {
             composeRule.onAllNodesWithText("Streamed paragraph 60 of", substring = true)
@@ -461,6 +463,8 @@ class ChatScreenShellTest {
             composeRule.onAllNodesWithContentDescription(scrollToLatest)
                 .fetchSemanticsNodes().isEmpty()
         }
+        composeRule.waitForIdle()
+
         val tail = composeRule
             .onNodeWithText("Streamed paragraph 30 of", substring = true)
             .getUnclippedBoundsInRoot()
@@ -517,6 +521,8 @@ class ChatScreenShellTest {
         composeRule.waitUntil {
             composeRule.onAllNodesWithText("Again").fetchSemanticsNodes().isNotEmpty()
         }
+        composeRule.waitForIdle()
+
         val bubble = composeRule.onNodeWithText("Again").getUnclippedBoundsInRoot()
         assertTrue(
             "the new message should be positioned just below the top bar",
