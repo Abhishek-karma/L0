@@ -116,7 +116,7 @@ Every release tag needs a matching `changelogs/<versionCode>.txt`, where `versio
 ### Submitting a new app
 
 1. Push the tag and confirm the GitHub release build succeeds.
-2. Fork `fdroid/fdroiddata`, then create `metadata/com.abhi.l0.yml`:
+2. Fork `fdroid/fdroiddata`, then add `metadata/com.abhi.l0.yml` from `fdroid/com.abhi.l0.yml`:
    ```yaml
    Categories:
    - Internet
@@ -132,11 +132,12 @@ Every release tag needs a matching `changelogs/<versionCode>.txt`, where `versio
    Builds:
      - versionName: 0.0.4
        versionCode: 4
-       commit: '<full tag commit sha>'
+       commit: 7bb96ee18bde85cb2958e70265a2bef092730444
        subdir: app
        gradle:
-         - assembleRelease
+         - yes
    ```
+   The `gradle: - yes` entry builds the default `assembleRelease` variant; it is a flavor selector, not a task name.
 3. Open a merge request against `fdroid/fdroiddata`. The F-Droid CI runs the build against it, and a maintainer picks up the request from the [submission queue](https://gitlab.com/fdroid/rfp/issues).
 
 Update the `versionName`, `versionCode`, and `commit` on every new tag; F-Droid's `checkupdates` runner handles subsequent releases once the app is indexed.

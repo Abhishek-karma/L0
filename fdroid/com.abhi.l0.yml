@@ -1,0 +1,27 @@
+# F-Droid submission metadata (fdroiddata).
+# Copy this file to fdroiddata/metadata/com.abhi.l0.yml when opening the merge request.
+# Name, Summary, Description, icon, screenshots, and per-version changelogs are read
+# automatically from fastlane/metadata/android/en-US/ in the app repository.
+
+Categories:
+  - Internet
+License: MIT
+AuthorName: Abhishek-karma
+AuthorEmail: abhikarma.work@gmail.com
+WebSite: https://github.com/Abhishek-karma/L0
+SourceCode: https://github.com/Abhishek-karma/L0
+IssueTracker: https://github.com/Abhishek-karma/L0/issues
+Changelog: https://github.com/Abhishek-karma/L0/blob/main/CHANGELOG.md
+
+AutoName: L0
+
+RepoType: git
+Repo: https://github.com/Abhishek-karma/L0.git
+
+Builds:
+  - versionName: 0.0.4
+    versionCode: 4
+    commit: 7bb96ee18bde85cb2958e70265a2bef092730444
+    subdir: app
+    gradle:
+      - yes
