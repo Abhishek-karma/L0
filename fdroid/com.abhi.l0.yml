@@ -1,17 +1,12 @@
-# F-Droid submission metadata (fdroiddata).
-# Copy this file to fdroiddata/metadata/com.abhi.l0.yml when opening the merge request.
-# Name, Summary, Description, icon, screenshots, and per-version changelogs are read
-# automatically from fastlane/metadata/android/en-US/ in the app repository.
-
 Categories:
+  - AI Chat
   - Internet
 License: MIT
 AuthorName: Abhishek-karma
 AuthorEmail: abhikarma.work@gmail.com
-WebSite: https://github.com/Abhishek-karma/L0
 SourceCode: https://github.com/Abhishek-karma/L0
 IssueTracker: https://github.com/Abhishek-karma/L0/issues
-Changelog: https://github.com/Abhishek-karma/L0/blob/main/CHANGELOG.md
+Changelog: https://github.com/Abhishek-karma/L0/blob/HEAD/CHANGELOG.md
 
 AutoName: L0
 
@@ -25,3 +20,9 @@ Builds:
     subdir: app
     gradle:
       - yes
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags ^v[0-9]+\.[0-9]+\.[0-9]+$
+UpdateCheckData: app/build.gradle.kts|versionCode\s*=\s*.*?\?:\s*(\d+)|app/build.gradle.kts|versionName\s*=\s*.*?\?:\s*"([^"]+)"
+CurrentVersion: 0.0.4
+CurrentVersionCode: 4

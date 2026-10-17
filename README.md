@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/Abhishek-karma/L0/actions/workflows/ci.yml/badge.svg)](https://github.com/Abhishek-karma/L0/actions/workflows/ci.yml)
 [![Release](https://github.com/Abhishek-karma/L0/actions/workflows/release.yml/badge.svg)](https://github.com/Abhishek-karma/L0/actions/workflows/release.yml)
-[![F-Droid](https://f-droid.org/expo_png.png)](https://f-droid.org/packages/com.abhi.l0/)
+[![F-Droid](https://f-droid.org/badge/get-it-on.png)](https://f-droid.org/packages/com.abhi.l0/)
 
 A minimal, private Android AI chat client focused on fast token-level streaming with OpenAI-compatible and Google Gemini providers.
 
@@ -116,28 +116,7 @@ Every release tag needs a matching `changelogs/<versionCode>.txt`, where `versio
 ### Submitting a new app
 
 1. Push the tag and confirm the GitHub release build succeeds.
-2. Fork `fdroid/fdroiddata`, then add `metadata/com.abhi.l0.yml` from `fdroid/com.abhi.l0.yml`:
-   ```yaml
-   Categories:
-   - Internet
-   License: MIT
-   AuthorName: Abhishek-karma
-   AuthorEmail: abhikarma.work@gmail.com
-   SourceCode: https://github.com/Abhishek-karma/L0
-   IssueTracker: https://github.com/Abhishek-karma/L0/issues
-   Changelog: https://github.com/Abhishek-karma/L0/blob/main/CHANGELOG.md
-   WebSite: https://github.com/Abhishek-karma/L0
-   RepoType: git
-   Repo: https://github.com/Abhishek-karma/L0.git
-   Builds:
-     - versionName: 0.0.4
-       versionCode: 4
-       commit: 7bb96ee18bde85cb2958e70265a2bef092730444
-       subdir: app
-       gradle:
-         - yes
-   ```
-   The `gradle: - yes` entry builds the default `assembleRelease` variant; it is a flavor selector, not a task name.
+2. Fork `fdroid/fdroiddata` and add `metadata/com.abhi.l0.yml`, copied verbatim from [`fdroid/com.abhi.l0.yml`](fdroid/com.abhi.l0.yml). The `gradle: - yes` entry builds the default `assembleRelease` variant; it is a flavor selector, not a task name.
 3. Open a merge request against `fdroid/fdroiddata`. The F-Droid CI runs the build against it, and a maintainer picks up the request from the [submission queue](https://gitlab.com/fdroid/rfp/issues).
 
-Update the `versionName`, `versionCode`, and `commit` on every new tag; F-Droid's `checkupdates` runner handles subsequent releases once the app is indexed.
+The metadata keeps itself current: `UpdateCheckMode: Tags` reads the release tags, and `UpdateCheckData` pulls `versionCode` and `versionName` straight out of `app/build.gradle.kts`, so `checkupdates` only ever needs the initial build block.
