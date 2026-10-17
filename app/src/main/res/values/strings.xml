@@ -285,7 +285,7 @@
     <string name="settings_update_failed">Couldn\'t check for updates</string>
     <string name="settings_update_auto_check">Auto-check updates</string>
     <string name="settings_update_auto_check_desc">Check GitHub releases in background</string>
-    <string name="settings_update_download">Download APK</string>
+    <string name="settings_update_download">View release</string>
     <string name="settings_update_dismiss">Later</string>
     <string name="settings_update_dialog_title">Update Available</string>
     <string name="settings_update_dialog_version">Version %1$s is available (current: %2$s).</string>
@@ -293,7 +293,7 @@
     <string name="update_notification_channel_name">App updates</string>
     <string name="update_notification_channel_desc">Notifications when a new version of L0 is available</string>
     <string name="update_notification_title">L0 %1$s available</string>
-    <string name="update_notification_body">Version %1$s is available to download.</string>
+    <string name="update_notification_body">Version %1$s is available.</string>
 
     <string name="settings_section_privacy">Privacy</string>
     <string name="privacy_intro">This page describes what this app actually does with your data, based on the code in this build.</string>

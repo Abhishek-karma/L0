@@ -2,6 +2,13 @@
 
 All notable changes to L0 are documented here.
 
+## [0.0.5] - 2026-10-17
+
+### Changed
+
+- **The update check is now opt-in.** L0 no longer contacts GitHub on launch; the automatic check is off by default and is enabled from Settings → About. The manual check in the same screen is unchanged, so the app's only outbound request is the one you configured.
+- **The update prompt opens the release page** instead of linking straight at the APK asset. An installed copy is never pointed at a build signed with a different key, which would otherwise break updating.
+
 ## [0.0.4] - 2026-10-11
 
 ### Added

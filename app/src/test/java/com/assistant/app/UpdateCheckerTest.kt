@@ -75,8 +75,8 @@ class UpdateCheckerTest {
         assertEquals("Version 1.2.0 Release", available.updateInfo.releaseTitle)
         assertEquals("Fixed web search and added updates", available.updateInfo.releaseNotes)
         assertEquals(
-            "https://github.com/Abhishek-karma/L0/releases/download/v1.2.0/L0-1.2.0.apk",
-            available.updateInfo.downloadUrl,
+            "https://github.com/Abhishek-karma/L0/releases/tag/v1.2.0",
+            available.updateInfo.htmlUrl,
         )
     }
 

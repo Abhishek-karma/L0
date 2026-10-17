@@ -40,23 +40,6 @@ class GitHubUpdateChecker(
                         val releaseTitle = json.optString("name").ifBlank { tagName }
                         val releaseNotes = json.optString("body")
                         val htmlUrl = json.optString("html_url")
-                        val publishedAt = json.optString("published_at").takeIf { it.isNotBlank() }
-
-                        var downloadUrl = htmlUrl
-                        val assets = json.optJSONArray("assets")
-                        if (assets != null) {
-                            for (i in 0 until assets.length()) {
-                                val asset = assets.optJSONObject(i) ?: continue
-                                val assetName = asset.optString("name")
-                                if (assetName.endsWith(".apk", ignoreCase = true)) {
-                                    val browserDownloadUrl = asset.optString("browser_download_url")
-                                    if (browserDownloadUrl.isNotBlank()) {
-                                        downloadUrl = browserDownloadUrl
-                                        break
-                                    }
-                                }
-                            }
-                        }
 
                         val isNewer = SemanticVersion.isNewer(latest = cleanVersion, current = currentVersion)
                         if (isNewer) {
@@ -66,8 +49,6 @@ class GitHubUpdateChecker(
                                     releaseTitle = releaseTitle,
                                     releaseNotes = releaseNotes,
                                     htmlUrl = htmlUrl,
-                                    downloadUrl = downloadUrl,
-                                    publishedAt = publishedAt,
                                 ),
                             )
                         } else {

@@ -126,6 +126,17 @@ class AppPreferencesTest {
     }
 
     @Test
+    fun `auto-check updates round-trips and defaults to off`() = runTest {
+        assertEquals(false, preferences.autoCheckUpdates.firstBounded())
+
+        preferences.setAutoCheckUpdates(true)
+        assertEquals(true, preferences.autoCheckUpdates.firstBounded())
+
+        preferences.setAutoCheckUpdates(false)
+        assertEquals(false, preferences.autoCheckUpdates.firstBounded())
+    }
+
+    @Test
     fun `legacy provider config round-trips through install and clear`() = runTest {
         assertNull(preferences.legacyProviderConfig())
 

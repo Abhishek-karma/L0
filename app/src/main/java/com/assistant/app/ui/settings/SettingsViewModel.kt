@@ -85,7 +85,7 @@ data class SettingsUiState(
     val credentialNotice: String? = null,
     val connectionOutcome: ConnectionOutcome? = null,
     val updateStatus: UpdateStatus = UpdateStatus.Idle,
-    val autoCheckUpdates: Boolean = true,
+    val autoCheckUpdates: Boolean = false,
     val showUpdateDialog: Boolean = false,
 ) {
     override fun toString(): String =

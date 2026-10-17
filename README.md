@@ -48,7 +48,7 @@ L0 communicates directly from the Android device to the configured AI provider e
 - **Backup exclusion**: `android:allowBackup="false"` plus explicit `dataExtractionRules` and `fullBackupContent` that exclude every domain from both cloud backup and device-to-device transfer. `allowBackup="false"` alone does not stop D2D transfer on Android 12+, so conversations and the keystore-backed key store are excluded explicitly.
 - **Network security**: Enforces TLS/HTTPS by default for all remote endpoints. Cleartext HTTP is strictly constrained to loopback and private local network ranges (`localhost`, `127.0.0.1`, `::1`, `10.0.2.2`, `*.local`, `*.lan`, `*.home`, `*.internal`) for self-hosted development and offline inference. Remote endpoints require HTTPS.
 - **Web-fetch guard**: Page fetches for search grounding resolve and reject loopback, private, link-local, CGNAT (`100.64.0.0/10`), benchmarking and multicast ranges, so a hostile search result cannot reach internal services.
-- **Direct communication**: Requests go straight to the configured provider endpoint with no third-party tracking or telemetry.
+- **Direct communication**: Requests go straight to the configured provider endpoint with no third-party tracking or telemetry. The only other outbound request is the optional update check, which is off by default.
 
 ## Requirements
 

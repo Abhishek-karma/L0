@@ -99,7 +99,7 @@ class AppPreferences(
         }
     }
 
-    val autoCheckUpdates: Flow<Boolean> = dataStore.data.map { prefs -> prefs[KEY_AUTO_CHECK_UPDATES] ?: true }
+    val autoCheckUpdates: Flow<Boolean> = dataStore.data.map { prefs -> prefs[KEY_AUTO_CHECK_UPDATES] ?: false }
 
     suspend fun setAutoCheckUpdates(enabled: Boolean) {
         dataStore.edit { prefs -> prefs[KEY_AUTO_CHECK_UPDATES] = enabled }

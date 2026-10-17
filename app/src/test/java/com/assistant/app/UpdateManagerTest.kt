@@ -64,7 +64,6 @@ class UpdateManagerTest {
             releaseTitle = "v1.2.0",
             releaseNotes = "New features",
             htmlUrl = "https://example.com/v1.2.0",
-            downloadUrl = "https://example.com/v1.2.0.apk",
         )
         val fakeChecker = object : UpdateChecker {
             override suspend fun checkForUpdate(currentVersion: String): UpdateCheckResult {
@@ -95,7 +94,6 @@ class UpdateManagerTest {
             releaseTitle = "v1.2.0",
             releaseNotes = "New features",
             htmlUrl = "https://example.com/v1.2.0",
-            downloadUrl = "https://example.com/v1.2.0.apk",
         )
         val fakeChecker = object : UpdateChecker {
             override suspend fun checkForUpdate(currentVersion: String): UpdateCheckResult {
@@ -126,7 +124,6 @@ class UpdateManagerTest {
             releaseTitle = "v1.2.0",
             releaseNotes = "",
             htmlUrl = "https://example.com/v1.2.0",
-            downloadUrl = "",
         )
         val fakeChecker = object : UpdateChecker {
             override suspend fun checkForUpdate(currentVersion: String): UpdateCheckResult {

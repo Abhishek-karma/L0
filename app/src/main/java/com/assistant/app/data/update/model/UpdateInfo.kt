@@ -5,8 +5,6 @@ data class UpdateInfo(
     val releaseTitle: String,
     val releaseNotes: String,
     val htmlUrl: String,
-    val downloadUrl: String,
-    val publishedAt: String? = null,
 )
 
 sealed interface UpdateCheckResult {

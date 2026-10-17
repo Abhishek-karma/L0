@@ -1,0 +1,1 @@
+The update check is now opt-in: L0 no longer contacts GitHub on launch, and the toggle to enable it lives in Settings > About. The update prompt also opens the release page instead of linking straight at an APK, so it never points you at a differently signed build.

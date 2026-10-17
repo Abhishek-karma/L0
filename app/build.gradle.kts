@@ -25,8 +25,8 @@ android {
         minSdk = 26
         targetSdk = 35
 
-        versionCode = (project.findProperty("versionCode") as String?)?.toInt() ?: 4
-        versionName = project.findProperty("versionName") as String? ?: "0.0.4"
+        versionCode = (project.findProperty("versionCode") as String?)?.toInt() ?: 5
+        versionName = project.findProperty("versionName") as String? ?: "0.0.5"
     }
 
     signingConfigs {

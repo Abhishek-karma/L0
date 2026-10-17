@@ -198,8 +198,7 @@ internal fun AboutPage(
             confirmButton = {
                 Button(
                     onClick = {
-                        val targetUrl = info.downloadUrl.ifBlank { info.htmlUrl }
-                        val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(targetUrl)).apply {
+                        val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(info.htmlUrl)).apply {
                             flags = Intent.FLAG_ACTIVITY_NEW_TASK
                         }
                         runCatching { context.startActivity(browserIntent) }
