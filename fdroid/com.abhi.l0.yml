@@ -14,9 +14,9 @@ RepoType: git
 Repo: https://github.com/Abhishek-karma/L0.git
 
 Builds:
-  - versionName: 0.0.4
-    versionCode: 4
-    commit: 7bb96ee18bde85cb2958e70265a2bef092730444
+  - versionName: 0.0.5
+    versionCode: 5
+    commit: 69eb4a98d05f8b72086eda497eab5108dec1efdb
     subdir: app
     gradle:
       - yes
@@ -24,5 +24,5 @@ Builds:
 AutoUpdateMode: Version
 UpdateCheckMode: Tags ^v[0-9]+\.[0-9]+\.[0-9]+$
 UpdateCheckData: app/build.gradle.kts|versionCode\s*=\s*.*?\?:\s*(\d+)|app/build.gradle.kts|versionName\s*=\s*.*?\?:\s*"([^"]+)"
-CurrentVersion: 0.0.4
-CurrentVersionCode: 4
+CurrentVersion: 0.0.5
+CurrentVersionCode: 5
