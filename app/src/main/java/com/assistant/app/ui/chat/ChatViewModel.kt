@@ -9,6 +9,7 @@ import com.assistant.app.data.ChatLlmState
 import com.assistant.app.data.ChatRepository
 import com.assistant.app.data.ChatStatus
 import com.assistant.app.data.ChatUiState
+import com.assistant.app.data.ConversationSearchHit
 import com.assistant.app.data.FilledTemplate
 import com.assistant.app.data.PromptTemplate
 import com.assistant.app.data.PromptTemplateStore
@@ -218,6 +219,9 @@ class ChatViewModel(
     }
 
     suspend fun shareConversationText(id: String): String? = repository.shareConversationText(id)
+
+    suspend fun searchConversations(query: String): List<ConversationSearchHit> =
+        repository.searchConversations(query)
 
     private fun applyIngestResults(results: List<AttachmentIngester.IngestResult>) {
         repository.addPendingAttachments(

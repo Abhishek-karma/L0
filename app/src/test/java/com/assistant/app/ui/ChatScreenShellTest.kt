@@ -523,10 +523,10 @@ class ChatScreenShellTest {
         }
         composeRule.waitForIdle()
 
-        val bubble = composeRule.onNodeWithText("Again").getUnclippedBoundsInRoot()
+        val bubbleTop = settledBubbleTop("Again")
         assertTrue(
             "the new message should be positioned just below the top bar",
-            bubble.top.value in 64f..100f,
+            bubbleTop in 64f..100f,
         )
 
         composeRule.waitUntil {
@@ -535,10 +535,10 @@ class ChatScreenShellTest {
         }
         composeRule.waitForIdle()
 
-        val bubbleAfterStreaming = composeRule.onNodeWithText("Again").getUnclippedBoundsInRoot()
+        val bubbleAfterStreaming = settledBubbleTop("Again")
         assertTrue(
             "the new message must stay pinned near the top while the answer streams below it",
-            bubbleAfterStreaming.top.value in 64f..100f,
+            bubbleAfterStreaming in 64f..100f,
         )
         composeRule.onNodeWithContentDescription(
             composeRule.activity.getString(R.string.cd_scroll_to_latest),
@@ -571,6 +571,19 @@ class ChatScreenShellTest {
         composeRule.onNodeWithContentDescription(
             composeRule.activity.getString(R.string.cd_scroll_to_latest),
         ).assertDoesNotExist()
+    }
+
+    private fun settledBubbleTop(text: String): Float {
+        var top = Float.MAX_VALUE
+        try {
+            composeRule.waitUntil(5_000) {
+                top = composeRule.onNodeWithText(text).getUnclippedBoundsInRoot().top.value
+                top in 64f..100f
+            }
+        } catch (_: AssertionError) {
+            // the caller's assertion reports the measured position
+        }
+        return top
     }
 
     private companion object {

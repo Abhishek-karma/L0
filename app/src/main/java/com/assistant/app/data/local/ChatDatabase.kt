@@ -69,6 +69,13 @@ data class ProviderWithActiveModel(
     val activeModel: String?,
 )
 
+data class ConversationSearchRow(
+    val id: String,
+    val title: String,
+    val updatedAt: Long,
+    val matchedContent: String?,
+)
+
 @Dao
 interface ProviderDao {
 
@@ -186,6 +193,19 @@ interface ConversationDao {
 
     @Query("SELECT * FROM conversations WHERE id = :id")
     suspend fun byId(id: String): ConversationEntity?
+
+    @Query(
+        "SELECT c.id AS id, c.title AS title, c.updatedAt AS updatedAt, " +
+            "(SELECT m.content FROM messages m WHERE m.conversationId = c.id " +
+            "AND m.content LIKE :pattern ESCAPE '\\' " +
+            "ORDER BY m.createdAt DESC, m.rowid DESC LIMIT 1) AS matchedContent " +
+            "FROM conversations c " +
+            "WHERE c.title LIKE :pattern ESCAPE '\\' " +
+            "OR EXISTS (SELECT 1 FROM messages m WHERE m.conversationId = c.id " +
+            "AND m.content LIKE :pattern ESCAPE '\\') " +
+            "ORDER BY c.pinned DESC, c.updatedAt DESC LIMIT :limit",
+    )
+    suspend fun search(pattern: String, limit: Int): List<ConversationSearchRow>
 
     @Query("DELETE FROM conversations WHERE id = :id")
     suspend fun delete(id: String)

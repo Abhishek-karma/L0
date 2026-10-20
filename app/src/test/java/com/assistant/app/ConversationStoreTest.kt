@@ -152,6 +152,88 @@ class ConversationStoreTest {
     }
 
     @Test
+    fun searchMatchesConversationTitlesAndMessageContent() = runTest {
+        store.createConversation("titled", "Kotlin Coroutines", now = 1_000)
+        store.createConversation("messaged", "Deployment notes", now = 2_000)
+        store.appendMessage(message("m1", "messaged", "USER", "The rollback plan is ready", 2_000))
+
+        val titleHits = store.searchConversations("coroutines")
+        assertEquals(listOf("titled"), titleHits.map { it.id })
+        assertNull(titleHits.single().snippet)
+
+        val contentHits = store.searchConversations("ROLLBACK")
+        assertEquals(listOf("messaged"), contentHits.map { it.id })
+        assertTrue(contentHits.single().snippet.orEmpty().contains("rollback", ignoreCase = true))
+    }
+
+    @Test
+    fun searchReturnsOneHitPerConversationWithPinnedFirst() = runTest {
+        store.createConversation("a", "Alpha", now = 1_000)
+        store.createConversation("b", "Beta", now = 2_000)
+        store.appendMessage(message("m1", "a", "USER", "first needle", 1_000))
+        store.appendMessage(message("m2", "a", "ASSISTANT", "second needle", 1_100))
+        store.appendMessage(message("m3", "b", "USER", "third needle", 2_000))
+        store.setPinned("a", true)
+
+        val hits = store.searchConversations("needle")
+
+        assertEquals(listOf("a", "b"), hits.map { it.id })
+    }
+
+    @Test
+    fun searchTreatsLikeWildcardsAsLiteralText() = runTest {
+        store.createConversation("c1", "Percent", now = 1_000)
+        store.appendMessage(message("m1", "c1", "USER", "100% complete", 1_000))
+
+        assertEquals(listOf("c1"), store.searchConversations("100%").map { it.id })
+        assertTrue(store.searchConversations("_").isEmpty())
+        assertTrue(store.searchConversations("\\").isEmpty())
+    }
+
+    @Test
+    fun searchSnippetFlattensWhitespaceAndCapsLength() = runTest {
+        store.createConversation("c1", "Notes", now = 1_000)
+        val content = "line one\nline two " + "context ".repeat(40) + "TARGET " + "tail ".repeat(20)
+        store.appendMessage(message("m1", "c1", "USER", content, 1_000))
+
+        val snippet = store.searchConversations("target").single().snippet.orEmpty()
+
+        assertTrue(snippet.contains("TARGET"))
+        assertFalse(snippet.contains('\n'))
+        assertTrue(snippet.length <= 142)
+    }
+
+    @Test
+    fun searchSnippetPointsAtTheMatchWhenTheQueryHasRepeatedSpaces() = runTest {
+        store.createConversation("c1", "Notes", now = 1_000)
+        val content = "padding ".repeat(40) + "a  b needle"
+        store.appendMessage(message("m1", "c1", "USER", content, 1_000))
+
+        val snippet = store.searchConversations("a  b").single().snippet.orEmpty()
+
+        assertTrue(snippet.contains("needle"))
+    }
+
+    @Test
+    fun searchSnippetUsesTheMostRecentMatchingMessage() = runTest {
+        store.createConversation("c1", "Notes", now = 1_000)
+        store.appendMessage(message("m1", "c1", "USER", "oldest needle", 1_000))
+        store.appendMessage(message("m2", "c1", "ASSISTANT", "newest needle", 2_000))
+
+        val snippet = store.searchConversations("needle").single().snippet.orEmpty()
+
+        assertTrue(snippet.contains("newest"))
+    }
+
+    @Test
+    fun searchIgnoresBlankQueries() = runTest {
+        store.createConversation("c1", "Title", now = 1_000)
+        store.appendMessage(message("m1", "c1", "USER", "content", 1_000))
+
+        assertTrue(store.searchConversations("   ").isEmpty())
+    }
+
+    @Test
     fun versionRowsRoundTripAndAreCleanedUp() = runTest {
         store.createConversation("c1", "Title", now = 1_000)
         store.appendMessage(message("m1", "c1", "ASSISTANT", "answer two", 1_000))

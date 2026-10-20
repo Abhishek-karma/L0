@@ -109,6 +109,7 @@ import com.assistant.app.ui.components.ComposerAttachAction
 import com.assistant.app.ui.components.MESSAGE_LIST_BOTTOM_PADDING
 import com.assistant.app.ui.components.MessageList
 import com.assistant.app.ui.components.PromptTemplateEditor
+import com.assistant.app.ui.components.openShareSheet
 import com.assistant.app.ui.theme.AppMotion
 import com.assistant.app.ui.theme.AppSpacing
 import com.assistant.app.ui.theme.AppShape
@@ -144,6 +145,11 @@ fun ChatScreen(
     val unfilledPlaceholders = remember(state.draft) { PromptTemplates.missingValues(state.draft) }
 
     val context = LocalContext.current
+    val shareMessage: (String) -> Unit = { content ->
+        if (content.isNotBlank()) {
+            openShareSheet(context, content, context.getString(R.string.cd_share_message))
+        }
+    }
     val keyboard = LocalSoftwareKeyboardController.current
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -659,6 +665,7 @@ fun ChatScreen(
                                 } else {
                                     null
                                 },
+                                onShareMessage = shareMessage,
                                 topPadding = barTop,
                                 modifier = Modifier.fillMaxWidth(),
                             )

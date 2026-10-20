@@ -33,6 +33,7 @@ object MarkdownParser {
     private const val CODE_FENCE = "```"
     private const val LATEX_FENCE = "$$"
     private const val FENCE_MAX_INDENT = 4
+    private const val MAX_LINK_LABEL_LENGTH = 200
     private val BULLET = "•"
     private val BOLD_SPAN_STYLE = SpanStyle(fontWeight = FontWeight.SemiBold)
     private val ITALIC_SPAN_STYLE = SpanStyle(fontStyle = FontStyle.Italic)
@@ -353,7 +354,8 @@ object MarkdownParser {
                 '`' -> appendBackticks(text, next, limit, codeBackground)
                 '*' -> appendEmphasis(text, next, limit, enclosing, codeBackground, linkColor)
                 '$' -> appendInlineMath(text, next, limit, enclosing)
-                'h' -> appendLink(text, next, limit, enclosing, linkColor)
+                '[' -> appendMarkdownLink(text, next, limit, enclosing, codeBackground, linkColor)
+                'h' -> appendAutoLink(text, next, limit, enclosing, linkColor)
                 else -> 0
             }
             if (consumed == 0) {
@@ -375,6 +377,7 @@ object MarkdownParser {
                 '`' -> return i
                 '*' -> return i
                 '$' -> return i
+                '[' -> return i
                 'h' -> if (startsWithUrl(text, i)) return i
             }
             i++
@@ -480,7 +483,98 @@ object MarkdownParser {
         return close + 1 - at
     }
 
-    private fun AnnotatedString.Builder.appendLink(
+    private fun AnnotatedString.Builder.appendMarkdownLink(
+        text: String,
+        at: Int,
+        limit: Int,
+        enclosing: SpanStyle?,
+        codeBackground: Color,
+        linkColor: Color,
+    ): Int {
+        if (at > 0 && text[at - 1] == '!') return 0
+        val labelEnd = linkLabelEnd(text, at, limit) ?: return 0
+        if (labelEnd + 1 >= limit || text[labelEnd + 1] != '(') return 0
+        val labelStart = at + 1
+        if (labelEnd == labelStart) return 0
+        val label = text.substring(labelStart, labelEnd)
+        if (label.any { it == '\n' || it == '\r' }) return 0
+        val destination = linkDestination(text, labelEnd + 2, limit) ?: return 0
+        withLink(LinkAnnotation.Url(destination.first, linkStyles(linkColor, enclosing))) {
+            if (label.contains('[')) {
+                append(label)
+            } else {
+                appendInline(text, labelStart, labelEnd, enclosing, codeBackground, linkColor)
+            }
+        }
+        return destination.second - at
+    }
+
+    private fun linkLabelEnd(text: String, at: Int, limit: Int): Int? {
+        var depth = 1
+        var index = at + 1
+        val end = minOf(limit, at + MAX_LINK_LABEL_LENGTH + 2)
+        while (index < end) {
+            when (text[index]) {
+                '[' -> depth++
+                ']' -> {
+                    depth--
+                    if (depth == 0) return index
+                }
+            }
+            index++
+        }
+        return null
+    }
+
+    private fun linkDestination(text: String, start: Int, limit: Int): Pair<String, Int>? {
+        if (start >= limit) return null
+        if (text[start] == '<') {
+            var close = start + 1
+            while (close < limit && text[close] != '>') close++
+            if (close >= limit) return null
+            if (close + 1 >= limit || text[close + 1] != ')') return null
+            val url = text.substring(start + 1, close)
+            if (!isValidDestination(url)) return null
+            return url to (close + 2)
+        }
+        var index = start
+        var depth = 0
+        while (index < limit) {
+            when (text[index]) {
+                '(' -> depth++
+                ')' -> if (depth == 0) {
+                    val url = text.substring(start, index)
+                    if (!isValidDestination(url)) return null
+                    return url to (index + 1)
+                } else {
+                    depth--
+                }
+                '\n', '\r' -> return null
+            }
+            index++
+        }
+        return null
+    }
+
+    private fun isValidDestination(url: String): Boolean =
+        url.none { it.isWhitespace() } && isHttpUrl(url)
+
+    private fun isHttpUrl(url: String): Boolean {
+        val schemeLength = when {
+            url.startsWith("https://", ignoreCase = true) -> 8
+            url.startsWith("http://", ignoreCase = true) -> 7
+            else -> return false
+        }
+        return url.length > schemeLength
+    }
+
+    private fun linkStyles(linkColor: Color, enclosing: SpanStyle?): TextLinkStyles? {
+        if (!linkColor.isSpecified) return null
+        val link = SpanStyle(color = linkColor, textDecoration = TextDecoration.Underline)
+        return TextLinkStyles(style = enclosing?.merge(link) ?: link)
+    }
+
+    private fun AnnotatedString.Builder.appendAutoLink(
         text: String,
         at: Int,
         limit: Int,
@@ -493,19 +587,7 @@ object MarkdownParser {
         if (url.length <= "https://".length) return 0
         url = url.trimEnd(*URL_TRAILING_PUNCTUATION)
         if (url.length <= "https://".length) return 0
-        withLink(
-            LinkAnnotation.Url(
-                url,
-                TextLinkStyles(
-                    style = if (linkColor.isSpecified) {
-                        val link = SpanStyle(color = linkColor, textDecoration = TextDecoration.Underline)
-                        enclosing?.merge(link) ?: link
-                    } else {
-                        null
-                    },
-                ),
-            ),
-        ) { append(url) }
+        withLink(LinkAnnotation.Url(url, linkStyles(linkColor, enclosing))) { append(url) }
         return url.length
     }
 }

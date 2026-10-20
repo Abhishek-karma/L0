@@ -1,5 +1,6 @@
 package com.assistant.app
 
+import androidx.lifecycle.ViewModelStore
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.assistant.app.data.AttachmentIngester
@@ -47,11 +48,13 @@ class ChatPersistenceTest {
 
     @After
     fun tearDown() {
+        viewModelStore.clear()
         database?.close()
         Dispatchers.resetMain()
     }
 
     private var database: ChatDatabase? = null
+    private val viewModelStore = ViewModelStore()
 
     private val directExecutor = Executor { it.run() }
 
@@ -81,7 +84,9 @@ class ChatPersistenceTest {
             attachmentsDir = attachmentsDir,
             webSearch = webSearch,
         )
-        block(ChatViewModel(repository, chatLlm), provider, repository, store)
+        val viewModel = ChatViewModel(repository, chatLlm)
+        viewModelStore.put("chat", viewModel)
+        block(viewModel, provider, repository, store)
     }
 
     private val helloScript = listOf(

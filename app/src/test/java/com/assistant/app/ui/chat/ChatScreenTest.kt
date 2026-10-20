@@ -1,6 +1,7 @@
 package com.assistant.app.ui.chat
 
 import androidx.activity.ComponentActivity
+import android.content.Intent
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -30,6 +31,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import kotlinx.coroutines.CompletableDeferred
 
@@ -120,6 +122,37 @@ class ChatScreenTest {
         waitUntilText("Hello")
         composeRule.onNodeWithText("Hi").assertIsDisplayed()
         composeRule.onNodeWithText("Hello").assertIsDisplayed()
+    }
+
+    @Test
+    fun completedAnswerAndLongPressedUserMessageOfferShare() {
+        val fixture = ScriptedChatFixture(listOf(ScriptedEvent.Emit("Reply")))
+        setContent(fixture)
+        typeAndSend("Hi")
+        waitUntilText("Reply")
+        waitUntilContentDescription(string(R.string.menu_share))
+        composeRule.onNodeWithContentDescription(string(R.string.menu_share)).assertIsDisplayed()
+
+        composeRule.onNodeWithText("Hi").performTouchInput { longClick() }
+        composeRule.onNodeWithText(string(R.string.menu_share)).assertIsDisplayed()
+    }
+
+    @Test
+    fun sharingAMessageOpensTheSystemShareSheetWithItsText() {
+        val fixture = ScriptedChatFixture(listOf(ScriptedEvent.Emit("Reply")))
+        setContent(fixture)
+        typeAndSend("Hi")
+        waitUntilText("Reply")
+        waitUntilContentDescription(string(R.string.menu_share))
+
+        composeRule.onNodeWithContentDescription(string(R.string.menu_share)).performClick()
+
+        val chooser = shadowOf(composeRule.activity).nextStartedActivity
+        assertEquals(Intent.ACTION_CHOOSER, chooser.action)
+        val sent = requireNotNull(chooser.getParcelableExtra<Intent>(Intent.EXTRA_INTENT))
+        assertEquals(Intent.ACTION_SEND, sent.action)
+        assertEquals("text/plain", sent.type)
+        assertEquals("Reply", sent.getStringExtra(Intent.EXTRA_TEXT))
     }
 
     @Test

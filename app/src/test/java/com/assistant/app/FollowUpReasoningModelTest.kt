@@ -1,5 +1,6 @@
 package com.assistant.app
 
+import androidx.lifecycle.ViewModelStore
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.assistant.app.data.ChatLlmState
@@ -38,11 +39,13 @@ class FollowUpReasoningModelTest {
 
     @After
     fun tearDown() {
+        viewModelStore.clear()
         database?.close()
         Dispatchers.resetMain()
     }
 
     private var database: ChatDatabase? = null
+    private val viewModelStore = ViewModelStore()
 
     private val directExecutor = Executor { it.run() }
 
@@ -85,6 +88,7 @@ class FollowUpReasoningModelTest {
             clock = { testScheduler.currentTime },
         )
         val viewModel = ChatViewModel(repository, chatLlm)
+        viewModelStore.put("chat", viewModel)
 
         viewModel.send("What is the capital of France?")
         advanceUntilIdle()

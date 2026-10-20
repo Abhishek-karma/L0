@@ -1,6 +1,5 @@
 package com.assistant.app.ui.history
 
-import android.content.Intent
 import android.text.format.DateUtils
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -53,6 +52,7 @@ import com.assistant.app.ui.components.AppIcons
 import com.assistant.app.ui.components.AssistantTopBar
 import com.assistant.app.ui.components.InletAction
 import com.assistant.app.ui.components.InletActionSheet
+import com.assistant.app.ui.components.openShareSheet
 import com.assistant.app.ui.theme.AppDimens
 import com.assistant.app.ui.theme.AppShape
 import com.assistant.app.ui.theme.AppSpacing
@@ -115,14 +115,7 @@ fun HistoryScreen(
     fun share(id: String) {
         scope.launch {
             val text = shareText(id) ?: return@launch
-            val intent = Intent(Intent.ACTION_SEND)
-                .setType("text/plain")
-                .putExtra(Intent.EXTRA_TEXT, text)
-            runCatching {
-                context.startActivity(
-                    Intent.createChooser(intent, context.getString(R.string.cd_share_conversation)),
-                )
-            }
+            openShareSheet(context, text, context.getString(R.string.cd_share_conversation))
         }
     }
 

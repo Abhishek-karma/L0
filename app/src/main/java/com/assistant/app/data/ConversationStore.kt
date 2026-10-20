@@ -8,6 +8,13 @@ import com.assistant.app.data.local.MessageEntity
 import com.assistant.app.data.local.MessageVersionEntity
 import kotlinx.coroutines.flow.Flow
 
+data class ConversationSearchHit(
+    val id: String,
+    val title: String,
+    val updatedAt: Long,
+    val snippet: String?,
+)
+
 class ConversationStore(private val db: ChatDatabase) {
 
     fun conversations(): Flow<List<ConversationEntity>> = db.conversationDao().observeAll()
@@ -64,6 +71,22 @@ class ConversationStore(private val db: ChatDatabase) {
 
     suspend fun conversation(id: String): ConversationEntity? = db.conversationDao().byId(id)
 
+    suspend fun searchConversations(query: String): List<ConversationSearchHit> {
+        val trimmed = query.trim()
+        if (trimmed.isEmpty()) return emptyList()
+        val pattern = "%${trimmed.escapeLike()}%"
+        return db.conversationDao().search(pattern, SEARCH_RESULT_LIMIT).map { row ->
+            ConversationSearchHit(
+                id = row.id,
+                title = row.title,
+                updatedAt = row.updatedAt,
+                snippet = row.matchedContent
+                    ?.let { snippetAround(it, trimmed) }
+                    ?.takeIf { it.isNotEmpty() },
+            )
+        }
+    }
+
     suspend fun setSearchEnabled(id: String, enabled: Boolean) {
         db.conversationDao().setSearchEnabled(id, enabled)
     }
@@ -110,5 +133,36 @@ class ConversationStore(private val db: ChatDatabase) {
     companion object {
         const val TITLE_MAX_LENGTH = 48
         const val NEW_CONVERSATION_TITLE = "New conversation"
+
+        private const val SEARCH_RESULT_LIMIT = 50
+        private const val SNIPPET_MAX_LENGTH = 140
+        private const val SNIPPET_CONTEXT = 40
+        private const val SNIPPET_MIN_LENGTH = 60
+        private val WHITESPACE = Regex("\\s+")
+
+        private fun String.escapeLike(): String =
+            replace("\\", "\\\\")
+                .replace("%", "\\%")
+                .replace("_", "\\_")
+
+        private fun snippetAround(content: String, query: String): String {
+            val match = content.indexOf(query, ignoreCase = true)
+            if (match < 0) return ""
+            var start = if (match > SNIPPET_CONTEXT) match - SNIPPET_CONTEXT else 0
+            var end = (start + SNIPPET_MAX_LENGTH).coerceAtMost(content.length)
+            if (end < content.length) {
+                val space = content.lastIndexOf(' ', end)
+                if (space > start + SNIPPET_MIN_LENGTH) end = space
+            }
+            if (start > 0 && Character.isLowSurrogate(content[start])) start--
+            if (end < content.length && end > start && Character.isHighSurrogate(content[end - 1])) end--
+            val text = content.substring(start, end).replace(WHITESPACE, " ").trim()
+            if (text.isEmpty()) return ""
+            return buildString {
+                if (start > 0) append('…')
+                append(text)
+                if (end < content.length) append('…')
+            }
+        }
     }
 }

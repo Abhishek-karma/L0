@@ -1,5 +1,6 @@
 package com.assistant.app
 
+import androidx.lifecycle.ViewModelStore
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.assistant.app.data.ChatLlmState
@@ -45,11 +46,13 @@ class FollowUpIntegrationTest {
 
     @After
     fun tearDown() {
+        viewModelStore.clear()
         database?.close()
         Dispatchers.resetMain()
     }
 
     private var database: ChatDatabase? = null
+    private val viewModelStore = ViewModelStore()
 
     private val directExecutor = Executor { it.run() }
 
@@ -78,6 +81,7 @@ class FollowUpIntegrationTest {
             clock = { testScheduler.currentTime },
         )
         val viewModel = ChatViewModel(repository, chatLlm)
+        viewModelStore.put("main", viewModel)
         block(viewModel, provider, repository, store)
     }
 
@@ -200,6 +204,7 @@ class FollowUpIntegrationTest {
             store = store,
         )
         val restoredViewModel = ChatViewModel(restoredRepository, chatLlm)
+        viewModelStore.put("restored", restoredViewModel)
         restoredViewModel.openConversation(conversationId)
         advanceUntilIdle()
 

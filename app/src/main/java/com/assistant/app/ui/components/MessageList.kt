@@ -96,6 +96,7 @@ fun MessageList(
     modifier: Modifier = Modifier,
     showReasoning: Boolean = true,
     onSpeakMessage: ((String) -> Unit)? = null,
+    onShareMessage: ((String) -> Unit)? = null,
 
     topPadding: Dp = AppSpacing.lg,
 ) {
@@ -138,6 +139,7 @@ fun MessageList(
                 onSwitchVersion = onSwitchVersion,
                 showReasoning = showReasoning,
                 onSpeakMessage = onSpeakMessage,
+                onShareMessage = onShareMessage,
                 modifier = if (isLast && isAssistant && (streaming || searching) && lastItemMinHeight > 0.dp) {
                     Modifier.heightIn(min = lastItemMinHeight)
                 } else {
@@ -160,6 +162,7 @@ private fun MessageItem(
     onSwitchVersion: (String, Int) -> Unit,
     showReasoning: Boolean,
     onSpeakMessage: ((String) -> Unit)?,
+    onShareMessage: ((String) -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
@@ -167,8 +170,10 @@ private fun MessageItem(
     val clipboard = LocalClipboardManager.current
     val isUser = message.role == Role.USER
     val canSpeak = onSpeakMessage != null && !isUser && message.content.isNotBlank()
+    val canShare = onShareMessage != null && message.content.isNotBlank()
     val copyLabel = stringResource(R.string.menu_copy)
     val speakLabel = stringResource(R.string.menu_speak)
+    val shareLabel = stringResource(R.string.menu_share)
     val regenerateLabel = stringResource(R.string.menu_regenerate)
     val editResendLabel = stringResource(R.string.menu_edit_and_resend)
 
@@ -313,6 +318,20 @@ private fun MessageItem(
                                 )
                             }
 
+                            if (canShare) {
+                                IconButton(
+                                    onClick = { onShareMessage?.invoke(message.content) },
+                                    modifier = Modifier.size(36.dp),
+                                ) {
+                                    Icon(
+                                        painter = painterResource(AppIcons.Share),
+                                        contentDescription = shareLabel,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                }
+                            }
+
                             if (canSpeak) {
                                 IconButton(
                                     onClick = { onSpeakMessage?.invoke(message.id) },
@@ -364,6 +383,15 @@ private fun MessageItem(
                                     label = speakLabel,
                                     icon = AppIcons.Speak,
                                     onClick = { onSpeakMessage?.invoke(message.id) },
+                                ),
+                            )
+                        }
+                        if (canShare) {
+                            add(
+                                InletAction(
+                                    label = shareLabel,
+                                    icon = AppIcons.Share,
+                                    onClick = { onShareMessage?.invoke(message.content) },
                                 ),
                             )
                         }

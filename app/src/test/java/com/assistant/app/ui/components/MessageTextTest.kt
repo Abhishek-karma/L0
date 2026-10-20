@@ -165,6 +165,104 @@ class MessageTextTest {
     }
 
     @Test
+    fun markdownLinkShowsItsLabelAndLinksTheDestination() {
+        val text = richText("Read [the docs](https://example.com/docs) now")
+
+        assertEquals("Read the docs now", text.text)
+        val link = text.getLinkAnnotations(0, text.length).single()
+        assertEquals("https://example.com/docs", (link.item as LinkAnnotation.Url).url)
+        assertEquals(5, link.start)
+        assertEquals(13, link.end)
+    }
+
+    @Test
+    fun markdownLinkLabelKeepsInlineStyles() {
+        val text = richText("[**bold** and `code`](https://example.com)")
+
+        assertEquals("bold and code", text.text)
+        assertTrue(text.spanStyles.any { it.item.fontWeight == FontWeight.SemiBold })
+        assertTrue(text.spanStyles.any { it.item.fontFamily == AppCodeFontFamily })
+        assertEquals(1, text.getLinkAnnotations(0, text.length).size)
+    }
+
+    @Test
+    fun markdownLinkAllowsBalancedParenthesesInTheUrl() {
+        val text = richText("[wiki](https://example.com/a_(b)) done")
+
+        assertEquals("wiki done", text.text)
+        val link = text.getLinkAnnotations(0, text.length).single()
+        assertEquals("https://example.com/a_(b)", (link.item as LinkAnnotation.Url).url)
+    }
+
+    @Test
+    fun markdownLinkAcceptsAnAngleBracketedDestination() {
+        val text = richText("[docs](<https://example.com>)")
+
+        assertEquals("docs", text.text)
+        assertEquals(
+            "https://example.com",
+            (text.getLinkAnnotations(0, text.length).single().item as LinkAnnotation.Url).url,
+        )
+    }
+
+    @Test
+    fun markdownLinkKeepsTrailingPunctuationOutsideTheLink() {
+        val text = richText("See [docs](https://example.com).")
+
+        assertEquals("See docs.", text.text)
+        val link = text.getLinkAnnotations(0, text.length).single()
+        assertEquals(4, link.start)
+        assertEquals(8, link.end)
+    }
+
+    @Test
+    fun markdownLinkRejectsNonHttpDestinations() {
+        val text = richText("[run](javascript:alert(1))")
+
+        assertEquals("[run](javascript:alert(1))", text.text)
+        assertTrue(text.getLinkAnnotations(0, text.length).isEmpty())
+    }
+
+    @Test
+    fun malformedMarkdownLinkRendersLiterally() {
+        val text = richText("[docs](https://example.com")
+
+        assertEquals("[docs](https://example.com", text.text)
+    }
+
+    @Test
+    fun imageSyntaxKeepsItsBracketsAndAltText() {
+        val text = richText("before ![chart](https://example.com/c.png) after")
+
+        assertEquals("before ![chart](https://example.com/c.png) after", text.text)
+    }
+
+    @Test
+    fun nestedBracketsInALabelDoNotCorruptTheRenderedText() {
+        val text = richText("[a [b](https://x.example)](https://y.example)")
+
+        assertEquals("a [b](https://x.example)", text.text)
+        val link = text.getLinkAnnotations(0, text.length).single()
+        assertEquals("https://y.example", (link.item as LinkAnnotation.Url).url)
+    }
+
+    @Test
+    fun aLinkLabelAtTheLengthLimitIsTurnedIntoALink() {
+        val label = "a".repeat(200)
+        val text = richText("[$label](https://example.com)")
+
+        assertEquals(label, text.text)
+    }
+
+    @Test
+    fun anOverlongLinkLabelIsNotTurnedIntoALink() {
+        val label = "a".repeat(201)
+        val text = richText("[$label](https://example.com)")
+
+        assertTrue(text.text.contains("[$label]"))
+    }
+
+    @Test
     fun boldAndItalicGetSpansAndDropMarkers() {
         val text = richText("**bold** and *slanted*")
 
@@ -499,8 +597,9 @@ class MessageTextTest {
         val blocks = messageBlocks("| [link](https://example.com) | text |\n| --- | --- |\n| a | https://x.com |")
 
         val table = blocks.single() as MessageBlock.Table
+        assertEquals("link", table.headers[0].text)
         val headerLinks = table.headers[0].getLinkAnnotations(0, table.headers[0].length)
-        assertEquals(1, headerLinks.size)
+        assertEquals("https://example.com", (headerLinks.single().item as LinkAnnotation.Url).url)
         val bodyLinks = table.rows[0][1].getLinkAnnotations(0, table.rows[0][1].length)
         assertEquals(1, bodyLinks.size)
     }

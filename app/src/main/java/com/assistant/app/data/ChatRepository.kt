@@ -203,6 +203,9 @@ class ChatRepository(
         return buildShareText(title, messages)
     }
 
+    suspend fun searchConversations(query: String): List<ConversationSearchHit> =
+        store?.searchConversations(query).orEmpty()
+
     private fun dropTrailingEmptyAssistant(messages: MutableList<UiMessage>): MutableList<UiMessage> {
         while (messages.isNotEmpty()) {
             val last = messages.last()

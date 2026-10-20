@@ -183,6 +183,7 @@ fun AssistantNavHost(
             val conversations by chatViewModel.conversationSummaries.collectAsState()
             SearchScreen(
                 conversations = conversations,
+                onSearch = chatViewModel::searchConversations,
                 onOpen = { id ->
                     navController.navigate("$CHAT_ROUTE_BASE?$CONVERSATION_ID_ARG=$id") {
                         popUpTo(SEARCH_ROUTE) { inclusive = true }

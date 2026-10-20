@@ -2,6 +2,14 @@
 
 All notable changes to L0 are documented here.
 
+## [Unreleased]
+
+### Added
+
+- **History search includes message text.** Searching now matches conversation titles and message contents, with a short snippet around the matching text.
+- **Share a single message.** Assistant answers expose a share action, and both user and assistant messages offer Share from the long-press menu.
+- **Labeled Markdown links.** `[label](https://example.com)` now displays the label as a link instead of showing the raw brackets. Bare URLs still linkify, and non-HTTP destinations are left as text.
+
 ## [0.0.5] - 2026-10-17
 
 ### Changed
